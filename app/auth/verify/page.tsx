@@ -1,246 +1,278 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { CheckCircle, ChevronRight, ShoppingBag } from "lucide-react"
+import { ShieldCheck, ShoppingBag, Upload, User, MapPin } from 'lucide-react'
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+import { Badge } from "@/components/ui/badge"
+import { SiteHeader } from "@/components/site-header"
+import { bueaNeighborhoods } from "@/lib/product-data"
 
 export default function VerifyPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [step, setStep] = useState(1)
-  const [verificationStatus, setVerificationStatus] = useState("pending")
+  const [formData, setFormData] = useState({
+    birthCity: "",
+    mothersMaidenName: "",
+    firstPet: "",
+    idType: "national_id",
+    idNumber: "",
+    address: "",
+    neighborhood: bueaNeighborhoods[0],
+  })
 
-  const handleSubmitStep1 = (e: React.FormEvent) => {
-    e.preventDefault()
-    setStep(2)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmitStep2 = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setStep(3)
-  }
-
-  const handleSubmitStep3 = (e: React.FormEvent) => {
-    e.preventDefault()
-    setVerificationStatus("pending_review")
-    toast({
-      title: "Verification submitted",
-      description: "Your verification information has been submitted for review.",
-    })
-    // In a real app, you would submit the verification data to your backend
-    setTimeout(() => {
+    
+    if (step < 3) {
+      setStep(step + 1)
+    } else {
+      // In a real app, you would submit the verification data to your backend
+      toast({
+        title: "Verification submitted",
+        description: "Your verification request has been submitted and is pending review.",
+      })
+      
+      // Redirect to verification status page
       router.push("/auth/verify/status")
-    }, 2000)
+    }
   }
 
   return (
-    <div className="container flex min-h-screen w-full flex-col items-center justify-center py-10">
-      <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8 flex items-center gap-2">
-        <ShoppingBag className="h-6 w-6 text-green-600" />
-        <span className="text-lg font-bold">CamGrocer</span>
-      </Link>
-
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[550px]">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex flex-col items-center">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full ${step >= 1 ? "bg-green-100 text-green-600" : "bg-muted text-muted-foreground"}`}
-            >
-              {step > 1 ? <CheckCircle className="h-5 w-5" /> : "1"}
+    <div className="flex flex-col min-h-screen">
+      <SiteHeader />
+      
+      <main className="flex-1 container py-10">
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center justify-center mb-8">
+            <div className="flex items-center gap-2 bg-green-50 p-3 rounded-full">
+              <ShieldCheck className="h-8 w-8 text-green-600" />
             </div>
-            <span className="mt-2 text-xs">Security Questions</span>
           </div>
-          <div className="h-0.5 w-16 bg-muted sm:w-24" />
-          <div className="flex flex-col items-center">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full ${step >= 2 ? "bg-green-100 text-green-600" : "bg-muted text-muted-foreground"}`}
-            >
-              {step > 2 ? <CheckCircle className="h-5 w-5" /> : "2"}
-            </div>
-            <span className="mt-2 text-xs">Identity Verification</span>
-          </div>
-          <div className="h-0.5 w-16 bg-muted sm:w-24" />
-          <div className="flex flex-col items-center">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full ${step >= 3 ? "bg-green-100 text-green-600" : "bg-muted text-muted-foreground"}`}
-            >
-              {step > 3 ? <CheckCircle className="h-5 w-5" /> : "3"}
-            </div>
-            <span className="mt-2 text-xs">Submission</span>
-          </div>
-        </div>
-
-        {step === 1 && (
+          
           <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Security Verification</CardTitle>
-              <CardDescription>Please answer these security questions to verify your identity</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmitStep1} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="security-question-1">What city were you born in?</Label>
-                    <Input id="security-question-1" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="security-question-2">What is your mother's maiden name?</Label>
-                    <Input id="security-question-2" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Have you ever operated a grocery business before?</Label>
-                    <RadioGroup defaultValue="no">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="yes" id="business-yes" />
-                        <Label htmlFor="business-yes">Yes</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="no" id="business-no" />
-                        <Label htmlFor="business-no">No</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="security-question-3">What is the name of your first pet?</Label>
-                    <Input id="security-question-3" required />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                  Continue <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Identity Verification</CardTitle>
-              <CardDescription>Please provide the following information to verify your identity</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmitStep2} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="id-type">ID Type</Label>
-                    <select
-                      id="id-type"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      required
-                    >
-                      <option value="">Select ID Type</option>
-                      <option value="national-id">National ID Card</option>
-                      <option value="passport">Passport</option>
-                      <option value="drivers-license">Driver's License</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="id-number">ID Number</Label>
-                    <Input id="id-number" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="id-photo">Upload ID Photo (Front)</Label>
-                    <Input id="id-photo" type="file" accept="image/*" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="id-photo-back">Upload ID Photo (Back)</Label>
-                    <Input id="id-photo-back" type="file" accept="image/*" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="selfie">Upload a Selfie</Label>
-                    <Input id="selfie" type="file" accept="image/*" required />
-                    <p className="text-xs text-muted-foreground">
-                      Please upload a clear photo of yourself holding your ID
-                    </p>
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                  Continue <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Additional Information</CardTitle>
-              <CardDescription>Please provide some additional information about yourself</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmitStep3} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Full Address</Label>
-                    <Textarea id="address" rows={3} required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone-number">Phone Number</Label>
-                    <Input id="phone-number" type="tel" placeholder="+237 6XX XXX XXX" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="purpose">Purpose of using CamGrocer</Label>
-                    <select
-                      id="purpose"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      required
-                    >
-                      <option value="">Select Purpose</option>
-                      <option value="personal">Personal Shopping</option>
-                      <option value="business">Business/Reselling</option>
-                      <option value="store">Operating a Store</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="referral">How did you hear about us?</Label>
-                    <Input id="referral" required />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                  Submit Verification
-                </Button>
-              </form>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Separator />
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  By submitting this form, you agree to our verification process. Your information will be reviewed by
-                  our team.
-                </p>
-                <p className="mt-2">This process typically takes 1-2 business days.</p>
+            <CardHeader className="space-y-1">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl">Account Verification</CardTitle>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3 text-green-600" />
+                  <span className="text-xs">Buea Only</span>
+                </Badge>
               </div>
+              <CardDescription>
+                Complete the verification process to access your account. This helps us ensure the security of our platform.
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="flex justify-between mb-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        step === i
+                          ? "bg-green-600 text-white"
+                          : step > i
+                          ? "bg-green-100 text-green-600"
+                          : "bg-gray-100 text-gray-400"
+                      }`}
+                    >
+                      {i}
+                    </div>
+                    <span className="text-xs mt-1 text-muted-foreground">
+                      {i === 1 ? "Security" : i === 2 ? "Identity" : "Location"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              
+              <form onSubmit={handleSubmit}>
+                {step === 1 && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="birthCity">City of Birth</Label>
+                      <Input
+                        id="birthCity"
+                        name="birthCity"
+                        value={formData.birthCity}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="mothersMaidenName">Mother's Maiden Name</Label>
+                      <Input
+                        id="mothersMaidenName"
+                        name="mothersMaidenName"
+                        value={formData.mothersMaidenName}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="firstPet">Name of First Pet (if applicable)</Label>
+                      <Input
+                        id="firstPet"
+                        name="firstPet"
+                        value={formData.firstPet}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="idType">ID Type</Label>
+                      <select
+                        id="idType"
+                        name="idType"
+                        value={formData.idType}
+                        onChange={handleChange}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required
+                      >
+                        <option value="national_id">National ID</option>
+                        <option value="passport">Passport</option>
+                        <option value="drivers_license">Driver's License</option>
+                        <option value="voter_card">Voter's Card</option>
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="idNumber">ID Number</Label>
+                      <Input
+                        id="idNumber"
+                        name="idNumber"
+                        value={formData.idNumber}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="idUpload">Upload ID Document (Front)</Label>
+                      <div className="border border-dashed rounded-md p-6 flex flex-col items-center justify-center">
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground mb-2">Click to upload or drag and drop</p>
+                        <p className="text-xs text-muted-foreground">PNG, JPG or PDF (max. 5MB)</p>
+                        <Input
+                          id="idUpload"
+                          type="file"
+                          className="hidden"
+                          accept="image/png,image/jpeg,application/pdf"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="selfieUpload">Upload Selfie with ID</Label>
+                      <div className="border border-dashed rounded-md p-6 flex flex-col items-center justify-center">
+                        <User className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground mb-2">Take a selfie holding your ID</p>
+                        <p className="text-xs text-muted-foreground">PNG or JPG (max. 5MB)</p>
+                        <Input
+                          id="selfieUpload"
+                          type="file"
+                          className="hidden"
+                          accept="image/png,image/jpeg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {step === 3 && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Street Address in Buea</Label>
+                      <Textarea
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="neighborhood">Neighborhood in Buea</Label>
+                      <select
+                        id="neighborhood"
+                        name="neighborhood"
+                        value={formData.neighborhood}
+                        onChange={handleChange}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required
+                      >
+                        {bueaNeighborhoods.map((neighborhood) => (
+                          <option key={neighborhood} value={neighborhood}>
+                            {neighborhood}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Verification Notice</Label>
+                      <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                        <p>By submitting this verification, you confirm that:</p>
+                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                          <li>You are currently located in Buea</li>
+                          <li>All information provided is accurate and true</li>
+                          <li>You consent to our verification process</li>
+                          <li>You understand that false information may result in account termination</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex justify-between mt-6">
+                  {step > 1 ? (
+                    <Button type="button" variant="outline" onClick={() => setStep(step - 1)}>
+                      Back
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="outline" onClick={() => router.push("/")}>
+                      Cancel
+                    </Button>
+                  )}
+                  
+                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                    {step < 3 ? "Continue" : "Submit Verification"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+            
+            <CardFooter className="border-t px-6 py-4">
+              <p className="text-xs text-muted-foreground">
+                Need help? <Link href="/contact" className="text-green-600 hover:underline">Contact our support team</Link>
+              </p>
             </CardFooter>
           </Card>
-        )}
-      </div>
+        </div>
+      </main>
+      <Toaster />
     </div>
   )
 }

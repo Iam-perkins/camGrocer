@@ -4,10 +4,9 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { Filter, Search, ShoppingBag, ShoppingCart, CheckCircle2 } from "lucide-react"
+import { Filter, CheckCircle2 } from 'lucide-react'
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -16,7 +15,8 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { generateProductsFromStore, categories as allCategories } from "@/lib/product-data"
+import { SiteHeader } from "@/components/site-header"
+import { generateProductsFromStore, categories as allCategories, bueaNeighborhoods } from "@/lib/product-data"
 
 export default function BrowsePage() {
   const { toast } = useToast()
@@ -217,44 +217,12 @@ export default function BrowsePage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <ShoppingBag className="h-6 w-6 text-green-600" />
-            <span className="text-xl font-bold">CamGrocer</span>
-          </Link>
-          <div className="hidden md:flex md:flex-1 md:items-center md:justify-center">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search for groceries, stores..."
-                className="w-full pl-8 md:w-[300px] lg:w-[400px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/cart">
-              <Button variant="outline" size="icon" className="relative">
-                <ShoppingCart className="h-4 w-4" />
-                {cartItems.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartItems.length}
-                  </span>
-                )}
-                <span className="sr-only">Cart</span>
-              </Button>
-            </Link>
-            <Link href="/auth/login">
-              <Button variant="outline" size="sm">
-                Sign In
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader 
+        cartItemCount={cartItems.length} 
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+      
       <div className="container py-6 md:py-8">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="md:w-64 lg:w-72 shrink-0">
@@ -306,6 +274,22 @@ export default function BrowsePage() {
                             <Label htmlFor={`store-${store}`}>{store}</Label>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Location</h4>
+                      <div className="space-y-2">
+                        {bueaNeighborhoods.slice(0, 6).map((neighborhood) => (
+                          <div key={neighborhood} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`location-${neighborhood}`}
+                              defaultChecked
+                              disabled
+                            />
+                            <Label htmlFor={`location-${neighborhood}`}>{neighborhood}, Buea</Label>
+                          </div>
+                        ))}
+                        <Badge variant="outline" className="mt-2">Service limited to Buea only</Badge>
                       </div>
                     </div>
                   </div>
@@ -371,6 +355,22 @@ export default function BrowsePage() {
                         ))}
                       </div>
                     </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Location</h4>
+                      <div className="space-y-2">
+                        {bueaNeighborhoods.slice(0, 6).map((neighborhood) => (
+                          <div key={neighborhood} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`mobile-location-${neighborhood}`}
+                              defaultChecked
+                              disabled
+                            />
+                            <Label htmlFor={`mobile-location-${neighborhood}`}>{neighborhood}, Buea</Label>
+                          </div>
+                        ))}
+                        <Badge variant="outline" className="mt-2">Service limited to Buea only</Badge>
+                      </div>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -406,9 +406,9 @@ export default function BrowsePage() {
             )}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold">Browse Products</h1>
+                <h1 className="text-2xl font-bold">Browse Products in Buea</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {totalProducts} products available from local Cameroonian markets
+                  {totalProducts} products available from local Buea markets
                 </p>
               </div>
               <div className="text-sm text-muted-foreground">
@@ -448,10 +448,12 @@ export default function BrowsePage() {
                         <CheckCircle2 className="h-3 w-3 text-blue-500 fill-blue-500 ml-1" />
                       )}
                     </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {product.location || `${bueaNeighborhoods[product.storeId % bueaNeighborhoods.length]}, Buea`}
+                    </div>
                   </CardContent>
                   <CardFooter className="p-4 pt-0">
                     <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => handleAddToCart(product)}>
-                      <ShoppingCart className="h-4 w-4 mr-2" />
                       Add to Cart
                     </Button>
                   </CardFooter>

@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getProductById } from "@/lib/product-data"
+import { ImageUploader } from "@/components/image-uploader"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -59,19 +60,50 @@ export default function DashboardPage() {
     },
   ])
 
+  // New state for the form
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category: "Fruits",
+    price: 1000,
+    stock: 10,
+    image: "/placeholder.svg?height=100&width=100&text=New",
+    description: "",
+  })
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setNewProduct({
+      ...newProduct,
+      [name]: name === "price" || name === "stock" ? Number.parseInt(value) : value,
+    })
+  }
+
+  const handleImageSelected = (imageUrl: string) => {
+    setNewProduct({
+      ...newProduct,
+      image: imageUrl || "/placeholder.svg?height=100&width=100&text=New",
+    })
+  }
+
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault()
     // In a real app, you would add the product to the database
-    const newProduct = {
+    const productToAdd = {
       id: products.length + 1,
-      name: "New Product",
+      ...newProduct,
+    }
+    setProducts([...products, productToAdd])
+
+    // Reset form
+    setNewProduct({
+      name: "",
       category: "Fruits",
       price: 1000,
       stock: 10,
       image: "/placeholder.svg?height=100&width=100&text=New",
-      description: "New product description",
-    }
-    setProducts([...products, newProduct])
+      description: "",
+    })
+
     setActiveTab("products")
   }
 
@@ -403,13 +435,23 @@ export default function DashboardPage() {
                 <form onSubmit={handleAddProduct} className="space-y-4 mt-4">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="product-name">Product Name</Label>
-                      <Input id="product-name" placeholder="Enter product name" required />
+                      <Label htmlFor="name">Product Name</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={newProduct.name}
+                        onChange={handleInputChange}
+                        placeholder="Enter product name"
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="product-category">Category</Label>
+                      <Label htmlFor="category">Category</Label>
                       <select
-                        id="product-category"
+                        id="category"
+                        name="category"
+                        value={newProduct.category}
+                        onChange={handleInputChange}
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         required
                       >
@@ -417,23 +459,57 @@ export default function DashboardPage() {
                         <option value="Vegetables">Vegetables</option>
                         <option value="Grains">Grains</option>
                         <option value="Spices">Spices</option>
+                        <option value="Oils">Oils</option>
+                        <option value="Tubers">Tubers</option>
+                        <option value="Nuts">Nuts</option>
+                        <option value="Meat & Fish">Meat & Fish</option>
+                        <option value="Beverages">Beverages</option>
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="product-price">Price (FCFA)</Label>
-                      <Input id="product-price" type="number" placeholder="0" min="0" required />
+                      <Label htmlFor="price">Price (FCFA)</Label>
+                      <Input
+                        id="price"
+                        name="price"
+                        value={newProduct.price}
+                        onChange={handleInputChange}
+                        type="number"
+                        placeholder="0"
+                        min="0"
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="product-stock">Stock Quantity</Label>
-                      <Input id="product-stock" type="number" placeholder="0" min="0" required />
+                      <Label htmlFor="stock">Stock Quantity</Label>
+                      <Input
+                        id="stock"
+                        name="stock"
+                        value={newProduct.stock}
+                        onChange={handleInputChange}
+                        type="number"
+                        placeholder="0"
+                        min="0"
+                        required
+                      />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="product-image">Product Image</Label>
-                      <Input id="product-image" type="file" accept="image/*" />
+                      <ImageUploader
+                        onImageSelected={handleImageSelected}
+                        defaultImage={newProduct.image}
+                        label="Product Image"
+                      />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="product-description">Description</Label>
-                      <Textarea id="product-description" placeholder="Enter product description" rows={4} required />
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        name="description"
+                        value={newProduct.description}
+                        onChange={handleInputChange}
+                        placeholder="Enter product description"
+                        rows={4}
+                        required
+                      />
                     </div>
                   </div>
                   <Button type="submit" className="bg-green-600 hover:bg-green-700">

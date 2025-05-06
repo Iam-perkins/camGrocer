@@ -1,0 +1,34 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+
+interface AnimatedButtonProps extends React.ComponentProps<typeof Button> {
+  hoverScale?: number
+}
+
+export function AnimatedButton({ children, className, hoverScale = 1.05, ...props }: AnimatedButtonProps) {
+  const [isHovered, setIsHovered] = useState(false)
+
+  return (
+    <motion.div
+      whileHover={{ scale: hoverScale }}
+      whileTap={{ scale: 0.98 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+    >
+      <Button className={`relative overflow-hidden ${className}`} {...props}>
+        <motion.span
+          className="absolute inset-0 bg-white/20"
+          initial={{ x: "-100%", opacity: 0 }}
+          animate={isHovered ? { x: "100%", opacity: 0.3 } : { x: "-100%", opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+        />
+        {children}
+      </Button>
+    </motion.div>
+  )
+}
