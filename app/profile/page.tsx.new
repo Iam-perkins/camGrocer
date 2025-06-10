@@ -1,0 +1,272 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { LogOut, Loader2, User, ShoppingBag, Package } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
+import { useToast } from "@/components/ui/use-toast"
+
+type UserData = {
+  id: string
+  name: string
+  email: string
+  phone: string
+  address: string
+  city: string
+  region: string
+  type: "customer" | "store"
+  avatar: string
+  createdAt: string
+}
+
+export default function ProfilePage() {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [userData, setUserData] = useState<UserData | null>(null)
+
+  // Check authentication and load user data
+  useEffect(() => {
+    const checkAuth = () => {
+      if (typeof window === 'undefined') return
+
+      const userDataString = localStorage.getItem("currentUser")
+      const authToken = localStorage.getItem("authToken")
+      
+      if (userDataString && authToken) {
+        try {
+          setUserData(JSON.parse(userDataString))
+        } catch (error) {
+          console.error("Error parsing user data:", error)
+          router.push("/auth/login")
+        }
+      } else {
+        router.push("/auth/login")
+      }
+      setIsLoading(false)
+    }
+
+    checkAuth()
+  }, [router])
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (response.ok) {
+        localStorage.removeItem('currentUser')
+        localStorage.removeItem('authToken')
+        
+        toast({
+          title: 'Logged out successfully',
+          description: 'You have been logged out of your account.',
+        })
+        
+        window.location.href = '/'
+      } else {
+        throw new Error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to log out. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <SiteHeader />
+        <main className="flex-1 container py-10 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+        </main>
+        <SiteFooter />
+      </div>
+    )
+  }
+
+  if (!userData) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <SiteHeader />
+        <main className="flex-1 container py-10">
+          <Card>
+            <CardHeader>
+              <CardTitle>Authentication Required</CardTitle>
+              <CardDescription>Please sign in to view your profile</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>You need to be logged in to access this page.</p>
+              <Button onClick={() => router.push('/auth/login')}>
+                Go to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <SiteFooter />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <SiteHeader />
+      <main className="flex-1 container py-10">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">My Profile</h1>
+              <p className="text-muted-foreground">
+                Manage your account and view your orders
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Logging out...
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Information</CardTitle>
+                <CardDescription>
+                  Update your account information and manage your preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input 
+                        id="name" 
+                        defaultValue={userData.name} 
+                        disabled 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        defaultValue={userData.email} 
+                        disabled 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input 
+                        id="phone" 
+                        defaultValue={userData.phone || 'Not provided'} 
+                        disabled 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Account Type</Label>
+                      <Input 
+                        value={userData.type === 'store' ? 'Store Owner' : 'Customer'} 
+                        disabled 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Address</CardTitle>
+                <CardDescription>
+                  Your primary delivery address
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Address</Label>
+                    <Input 
+                      defaultValue={userData.address || 'Not provided'} 
+                      disabled 
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>City</Label>
+                      <Input 
+                        defaultValue={userData.city || 'Not provided'} 
+                        disabled 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Region</Label>
+                      <Input 
+                        defaultValue={userData.region || 'Not provided'} 
+                        disabled 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Orders</CardTitle>
+                <CardDescription>
+                  View and track your recent orders
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No orders yet</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Your orders will appear here once you make a purchase.
+                  </p>
+                  <Button className="mt-4" onClick={() => router.push('/products')}>
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Start Shopping
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  )
+}

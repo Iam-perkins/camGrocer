@@ -443,14 +443,12 @@ export default function ContactPage() {
                             required
                           />
                         </div>
-                        <AnimatedButton>
-                          <Button
+                        <AnimatedButton
                             type="submit"
                             className="w-full bg-green-700 hover:bg-green-800"
                             disabled={formStatus !== "idle"}
                           >
                             {formStatus === "idle" ? "Send Message" : "Sending..."}
-                          </Button>
                         </AnimatedButton>
                       </form>
                     </CardContent>

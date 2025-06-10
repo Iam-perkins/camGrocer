@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
   BarChart3,
@@ -11,6 +10,7 @@ import {
   Clock,
   Filter,
   Home,
+  Loader2,
   LogOut,
   Package,
   Search,
@@ -38,73 +38,60 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 
+type StoreOwnerRequest = {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  storeName: string;
+  storeDescription: string;
+  storeLocation: string;
+  verificationStatus: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function VerificationsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("pending")
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedVerification, setSelectedVerification] = useState<any>(null)
+  const [storeOwnerRequests, setStoreOwnerRequests] = useState<StoreOwnerRequest[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedVerification, setSelectedVerification] = useState<StoreOwnerRequest | null>(null)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  // Mock verification data
-  const verifications = [
-    {
-      id: "VER-001",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      phone: "+237 612 345 678",
-      type: "Customer",
-      status: "pending",
-      submittedAt: "2025-04-25 10:30 AM",
-    },
-    {
-      id: "VER-002",
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      phone: "+237 623 456 789",
-      type: "Store Owner",
-      status: "pending",
-      submittedAt: "2025-04-25 11:45 AM",
-    },
-    {
-      id: "VER-003",
-      name: "Robert Johnson",
-      email: "robert.johnson@example.com",
-      phone: "+237 634 567 890",
-      type: "Customer",
-      status: "approved",
-      submittedAt: "2025-04-24 09:15 AM",
-      reviewedAt: "2025-04-25 14:30 PM",
-      reviewedBy: "Admin User",
-    },
-    {
-      id: "VER-004",
-      name: "Emily Davis",
-      email: "emily.davis@example.com",
-      phone: "+237 645 678 901",
-      type: "Store Owner",
-      status: "rejected",
-      submittedAt: "2025-04-24 13:20 PM",
-      reviewedAt: "2025-04-25 10:45 AM",
-      reviewedBy: "Admin User",
-      rejectionReason: "Unclear documentation provided",
-    },
-    {
-      id: "VER-005",
-      name: "Michael Wilson",
-      email: "michael.wilson@example.com",
-      phone: "+237 656 789 012",
-      type: "Customer",
-      status: "approved",
-      submittedAt: "2025-04-23 15:10 PM",
-      reviewedAt: "2025-04-24 11:30 AM",
-      reviewedBy: "Admin User",
-    },
-  ]
+  // Fetch store owner requests
+  useEffect(() => {
+    const fetchStoreOwnerRequests = async () => {
+      try {
+        const response = await fetch('/api/admin/store-owners')
+        if (!response.ok) {
+          throw new Error('Failed to fetch store owner requests')
+        }
+        const data = await response.json()
+        setStoreOwnerRequests(data)
+      } catch (error) {
+        console.error('Error fetching store owner requests:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to load store owner requests',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const filteredVerifications = verifications.filter((verification) => {
+    fetchStoreOwnerRequests()
+  }, [toast])
+
+  // Filter store owner requests based on active tab and search query
+  const filteredVerifications = storeOwnerRequests.filter((request) => {
     // Filter by status
-    if (activeTab !== "all" && verification.status !== activeTab) {
+    if (activeTab !== "all" && request.verificationStatus !== activeTab) {
       return false
     }
 
@@ -112,37 +99,118 @@ export default function VerificationsPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       return (
-        verification.id.toLowerCase().includes(query) ||
-        verification.name.toLowerCase().includes(query) ||
-        verification.email.toLowerCase().includes(query) ||
-        verification.phone.toLowerCase().includes(query)
+        request._id.toLowerCase().includes(query) ||
+        request.name.toLowerCase().includes(query) ||
+        request.email.toLowerCase().includes(query) ||
+        request.phone.toLowerCase().includes(query) ||
+        request.storeName.toLowerCase().includes(query)
       )
     }
 
     return true
   })
 
-  const handleViewVerification = (verification: any) => {
+
+
+  const handleViewVerification = (verification: StoreOwnerRequest) => {
     setSelectedVerification(verification)
     setViewDialogOpen(true)
   }
 
-  const handleApproveVerification = () => {
-    // In a real app, you would call your API to approve the verification
-    toast({
-      title: "Verification approved",
-      description: `${selectedVerification.name}'s verification has been approved.`,
-    })
-    setViewDialogOpen(false)
+  const handleApproveVerification = async () => {
+    if (!selectedVerification) return
+    
+    setIsProcessing(true)
+    try {
+      const response = await fetch('/api/admin/store-owners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve',
+          storeOwnerId: selectedVerification._id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to approve store owner')
+      }
+
+      // Update the local state
+      setStoreOwnerRequests(prev => 
+        prev.map(req => 
+          req._id === selectedVerification._id 
+            ? { ...req, verificationStatus: 'approved' } 
+            : req
+        )
+      )
+
+      toast({
+        title: 'Success',
+        description: `${selectedVerification.name}'s store owner request has been approved.`,
+      })
+    } catch (error) {
+      console.error('Error approving store owner:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to approve store owner request',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsProcessing(false)
+      setViewDialogOpen(false)
+    }
   }
 
-  const handleRejectVerification = () => {
-    // In a real app, you would call your API to reject the verification
-    toast({
-      title: "Verification rejected",
-      description: `${selectedVerification.name}'s verification has been rejected.`,
-    })
-    setViewDialogOpen(false)
+  const handleRejectVerification = async () => {
+    if (!selectedVerification) return
+    
+    const reason = prompt('Please provide a reason for rejection:')
+    if (!reason) return
+    
+    setIsProcessing(true)
+    try {
+      const response = await fetch('/api/admin/store-owners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject',
+          storeOwnerId: selectedVerification._id,
+          reason,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to reject store owner')
+      }
+
+      // Update the local state
+      setStoreOwnerRequests(prev => 
+        prev.map(req => 
+          req._id === selectedVerification._id 
+            ? { ...req, verificationStatus: 'rejected', rejectionReason: reason } 
+            : req
+        )
+      )
+
+      toast({
+        title: 'Success',
+        description: `${selectedVerification.name}'s store owner request has been rejected.`,
+      })
+    } catch (error) {
+      console.error('Error rejecting store owner:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to reject store owner request',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsProcessing(false)
+      setViewDialogOpen(false)
+    }
   }
 
   return (
@@ -246,8 +314,8 @@ export default function VerificationsPage() {
               <TabsContent value="pending" className="mt-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle>Pending Verifications</CardTitle>
-                    <CardDescription>Review and process user verification requests</CardDescription>
+                    <CardTitle>Store Owner Applications</CardTitle>
+                    <CardDescription>Review and process store owner applications</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Table>
@@ -483,66 +551,13 @@ export default function VerificationsPage() {
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Verification Details</DialogTitle>
-            <DialogDescription>Review user verification information</DialogDescription>
+            <DialogTitle>Store Owner Application</DialogTitle>
+            <DialogDescription>
+              Review the application details for {selectedVerification?.name}
+            </DialogDescription>
           </DialogHeader>
-
-          {selectedVerification && (
-            <div className="grid gap-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium">Personal Information</h3>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Name:</span>
-                      <span className="text-sm font-medium">{selectedVerification.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Email:</span>
-                      <span className="text-sm font-medium">{selectedVerification.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Phone:</span>
-                      <span className="text-sm font-medium">{selectedVerification.phone}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Account Type:</span>
-                      <span className="text-sm font-medium">{selectedVerification.type}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium">Verification Status</h3>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Status:</span>
-                      <Badge
-                        className={
-                          selectedVerification.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                            : selectedVerification.status === "approved"
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : "bg-red-100 text-red-800 hover:bg-red-100"
-                        }
-                        variant="outline"
-                      >
-                        {selectedVerification.status.charAt(0).toUpperCase() + selectedVerification.status.slice(1)}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Submitted:</span>
-                      <span className="text-sm font-medium">{selectedVerification.submittedAt}</span>
-                    </div>
-                    {selectedVerification.reviewedAt && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Reviewed:</span>
-                        <span className="text-sm font-medium">{selectedVerification.reviewedAt}</span>
-                      </div>
-                    )}
-                    {selectedVerification.reviewedBy && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Reviewed By:</span>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
                         <span className="text-sm font-medium">{selectedVerification.reviewedBy}</span>
                       </div>
                     )}
@@ -604,18 +619,36 @@ export default function VerificationsPage() {
           )}
 
           <DialogFooter>
-            {selectedVerification && selectedVerification.status === "pending" && (
+            {selectedVerification && selectedVerification.verificationStatus === "pending" ? (
               <>
-                <Button variant="outline" onClick={() => handleRejectVerification()}>
-                  Reject
+                <Button
+                  variant="outline"
+                  onClick={() => setViewDialogOpen(false)}
+                  disabled={isProcessing}
+                >
+                  Cancel
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleApproveVerification()}>
-                  Approve
+                <Button
+                  variant="destructive"
+                  onClick={handleRejectVerification}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? 'Processing...' : 'Reject'}
+                </Button>
+                <Button 
+                  onClick={handleApproveVerification}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? 'Processing...' : 'Approve'}
                 </Button>
               </>
-            )}
-            {selectedVerification && selectedVerification.status !== "pending" && (
-              <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+            ) : (
+              <Button 
+                onClick={() => setViewDialogOpen(false)}
+                disabled={isProcessing}
+              >
+                Close
+              </Button>
             )}
           </DialogFooter>
         </DialogContent>

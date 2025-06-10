@@ -3,7 +3,7 @@
 import { DialogTitle } from "@/components/ui/dialog"
 
 import { useState, useRef, useEffect } from "react"
-import { Bot, Send, Lock, CheckCircle, AlertCircle } from "lucide-react"
+import { Bot, Send, Lock, CheckCircle, AlertCircle, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,8 @@ type BiddingModalProps = {
     price: number
     storeId: number
     image?: string
+    unit?: string
+    quantityDescription?: string
   }
   isPremiumUser: boolean
   onBidAccepted: (productId: number, newPrice: number) => void
@@ -48,6 +50,7 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const [isConfirming, setIsConfirming] = useState(false)
+  const [offerAccepted, setOfferAccepted] = useState(false)
 
   // Calculate minimum acceptable price (70% of original)
   const minPrice = Math.floor(product.price * 0.7)
@@ -60,11 +63,17 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
         productWithImage.image = getProductById(productWithImage.id).image
       }
 
-      const welcomeMessage = getWelcomeMessage(language, productWithImage.name, productWithImage.price)
+      const welcomeMessage = getWelcomeMessage(
+        language,
+        productWithImage.name,
+        productWithImage.price,
+        productWithImage.unit || "item",
+      )
       setMessages([{ role: "bot", content: welcomeMessage }])
       setCurrentBid(null)
+      setOfferAccepted(false)
     }
-  }, [isOpen, language, productWithImage.name, productWithImage.price, productWithImage])
+  }, [isOpen, language, productWithImage.name, productWithImage.price, productWithImage, productWithImage.unit])
 
   // Scroll to bottom of chat when messages change
   useEffect(() => {
@@ -72,14 +81,14 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
   }, [messages])
 
   // Get welcome message based on selected language
-  const getWelcomeMessage = (lang: string, productName: string, price: number) => {
+  const getWelcomeMessage = (lang: string, productName: string, price: number, unit: string) => {
     switch (lang) {
       case "french":
-        return `Bonjour! Je suis votre assistant de négociation pour ${productName}. Le prix actuel est de ${price} FCFA. Vous pouvez négocier jusqu'à 30% de réduction. Quelle est votre offre?`
+        return `Bonjour! Je suis votre assistant de négociation pour ${productName} (${price} FCFA par ${unit}). Quelle est votre offre?`
       case "pidgin":
-        return `How now! I be your bargain assistant for ${productName}. The price na ${price} FCFA. You fit negotiate up to 30% discount. How much you wan pay?`
+        return `How now! I be your bargain assistant for ${productName} (${price} FCFA per ${unit}). How much you wan pay?`
       default:
-        return `Hello! I'm your negotiation assistant for ${productName}. The current price is ${price} FCFA. You can negotiate up to 30% discount. What's your offer?`
+        return `Hello! I'm your negotiation assistant for ${productName} (${price} FCFA per ${unit}). What's your offer?`
     }
   }
 
@@ -102,45 +111,76 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
       }
     }
 
+    // Calculate discount percentage
+    const discountPercentage = Math.round(((product.price - bid) / product.price) * 100)
+
     // If bid is too low (below 70% of original price)
     if (bid < minPrice) {
-      const discount = Math.round(((product.price - minPrice) / product.price) * 100)
-
       switch (lang) {
         case "french":
-          return `Désolé, votre offre est trop basse. Je ne peux pas accepter moins de ${minPrice} FCFA (${discount}% de réduction). Veuillez faire une autre offre.`
+          return `Hmm, votre offre de ${bid} FCFA est un peu trop basse. Pouvez-vous augmenter un peu? Je peux offrir jusqu'à 30% de réduction.`
         case "pidgin":
-          return `Sorry o, your offer too low. I no fit accept less than ${minPrice} FCFA (${discount}% discount). Make you try another price.`
+          return `Hmm, your offer of ${bid} FCFA dey too low. You fit add small? I fit give you up to 30% discount.`
         default:
-          return `Sorry, your offer is too low. I cannot accept less than ${minPrice} FCFA (${discount}% discount). Please make another offer.`
+          return `Hmm, your offer of ${bid} FCFA is a bit too low. Can you go a little higher? I can offer up to 30% discount.`
       }
     }
 
-    // If bid is acceptable but not the best deal
-    if (bid > minPrice && bid < product.price) {
-      const discount = Math.round(((product.price - bid) / product.price) * 100)
-      const counterOffer = Math.max(minPrice, Math.floor(bid * 0.95))
+    // If bid is acceptable (at least 70% of original price)
+    if (bid >= minPrice && bid < product.price) {
+      // Set offer as accepted
+      setOfferAccepted(true)
 
-      // If close to minimum price, accept the offer
-      if (bid <= minPrice + (product.price - minPrice) * 0.2) {
+      // Calculate how good the offer is within the acceptable range
+      const rangePosition = (bid - minPrice) / (product.price - minPrice)
+
+      // Very good offer (close to original price)
+      if (rangePosition > 0.8) {
         switch (lang) {
           case "french":
-            return `Félicitations! J'accepte votre offre de ${bid} FCFA (${discount}% de réduction). Cliquez sur "Accepter l'offre" pour confirmer.`
+            return `C'est une excellente offre! J'accepte votre prix de ${bid} FCFA (${discountPercentage}% de réduction). Cliquez sur le bouton "Accepter l'offre" ci-dessous pour confirmer et ajouter au panier.`
           case "pidgin":
-            return `Correct! I accept your offer of ${bid} FCFA (${discount}% discount). Click "Accept Offer" to confirm.`
+            return `Na very good offer! I accept your price of ${bid} FCFA (${discountPercentage}% discount). Click the "Accept Offer" button below to confirm and add to cart.`
           default:
-            return `Great! I accept your offer of ${bid} FCFA (${discount}% discount). Click "Accept Offer" to confirm.`
+            return `That's an excellent offer! I accept your price of ${bid} FCFA (${discountPercentage}% discount). Click the "Accept Offer" button below to confirm and add to cart.`
         }
       }
 
-      // Otherwise counter offer
-      switch (lang) {
-        case "french":
-          return `Hmm, que diriez-vous de ${counterOffer} FCFA? C'est une meilleure offre.`
-        case "pidgin":
-          return `Hmm, wetin you think about ${counterOffer} FCFA? Na better offer o.`
-        default:
-          return `Hmm, how about ${counterOffer} FCFA? That's a better deal.`
+      // Good offer (middle of the range)
+      else if (rangePosition > 0.5) {
+        switch (lang) {
+          case "french":
+            return `C'est une bonne offre. J'accepte votre prix de ${bid} FCFA (${discountPercentage}% de réduction). Cliquez sur le bouton "Accepter l'offre" ci-dessous pour confirmer et ajouter au panier.`
+          case "pidgin":
+            return `Na good offer. I accept your price of ${bid} FCFA (${discountPercentage}% discount). Click the "Accept Offer" button below to confirm and add to cart.`
+          default:
+            return `That's a good offer. I accept your price of ${bid} FCFA (${discountPercentage}% discount). Click the "Accept Offer" button below to confirm and add to cart.`
+        }
+      }
+
+      // Acceptable offer (lower end of the range)
+      else {
+        // Maybe try to negotiate a bit higher
+        const counterOffer = Math.floor(bid * 1.05)
+        if (counterOffer < product.price) {
+          switch (lang) {
+            case "french":
+              return `Votre offre de ${bid} FCFA est acceptable, mais que diriez-vous de ${counterOffer} FCFA? Sinon, je peux accepter votre offre actuelle. Cliquez sur le bouton "Accepter l'offre" ci-dessous pour confirmer.`
+            case "pidgin":
+              return `Your offer of ${bid} FCFA dey okay, but wetin you think about ${counterOffer} FCFA? If you no want, I fit still accept your current offer. Click the "Accept Offer" button below to confirm.`
+            default:
+              return `Your offer of ${bid} FCFA is acceptable, but how about ${counterOffer} FCFA? If not, I can still accept your current offer. Click the "Accept Offer" button below to confirm.`
+          }
+        } else {
+          switch (lang) {
+            case "french":
+              return `J'accepte votre offre de ${bid} FCFA (${discountPercentage}% de réduction). Cliquez sur le bouton "Accepter l'offre" ci-dessous pour confirmer et ajouter au panier.`
+            case "pidgin":
+              return `I accept your offer of ${bid} FCFA (${discountPercentage}% discount). Click the "Accept Offer" button below to confirm and add to cart.`
+            default:
+              return `I accept your offer of ${bid} FCFA (${discountPercentage}% discount). Click the "Accept Offer" button below to confirm and add to cart.`
+          }
+        }
       }
     }
 
@@ -153,20 +193,6 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
           return `You no need pay full price! I fit give you discount. Wetin you think about ${Math.floor(product.price * 0.9)} FCFA?`
         default:
           return `You don't need to pay the full price! I can offer you a discount. How about ${Math.floor(product.price * 0.9)} FCFA?`
-      }
-    }
-
-    // If bid is exactly the minimum price
-    if (bid === minPrice) {
-      const discount = Math.round(((product.price - minPrice) / product.price) * 100)
-
-      switch (lang) {
-        case "french":
-          return `Vous avez trouvé mon meilleur prix! J'accepte votre offre de ${bid} FCFA (${discount}% de réduction). Cliquez sur "Accepter l'offre" pour confirmer.`
-        case "pidgin":
-          return `You don find my best price! I accept your offer of ${bid} FCFA (${discount}% discount). Click "Accept Offer" to confirm.`
-        default:
-          return `You've found my best price! I accept your offer of ${bid} FCFA (${discount}% discount). Click "Accept Offer" to confirm.`
       }
     }
 
@@ -194,14 +220,7 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
       setIsProcessing(false)
 
       // Check if this is an acceptance message
-      if (
-        extractedPrice !== null &&
-        extractedPrice >= minPrice &&
-        extractedPrice < product.price &&
-        (botResponse.includes("accept your offer") ||
-          botResponse.includes("accepte votre offre") ||
-          botResponse.includes("accept your offer"))
-      ) {
+      if (extractedPrice !== null && extractedPrice >= minPrice && extractedPrice < product.price) {
         setCurrentBid(extractedPrice)
       }
     }, 1000)
@@ -209,7 +228,10 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
 
   // Update the handleAcceptBid function to be more prominent and show a confirmation step
   const handleAcceptBid = () => {
-    if (currentBid !== null && currentBid >= minPrice) {
+    if (currentBid !== null && currentBid >= minPrice && currentBid < product.price) {
+      // Calculate discount percentage
+      const discountPercentage = Math.round(((product.price - currentBid) / product.price) * 100)
+
       // Add a confirmation message before closing
       setMessages([
         ...messages,
@@ -217,10 +239,10 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
           role: "bot",
           content:
             language === "french"
-              ? `Prix confirmé! Votre nouveau prix pour ${product.name} est ${currentBid} FCFA.`
+              ? `Prix confirmé! Votre nouveau prix pour ${product.name} est ${currentBid} FCFA (${discountPercentage}% de réduction). Ce prix est temporaire et sera réinitialisé lorsque vous fermerez votre navigateur.`
               : language === "pidgin"
-                ? `Price don confirm! Your new price for ${product.name} na ${currentBid} FCFA.`
-                : `Price confirmed! Your new price for ${product.name} is ${currentBid} FCFA.`,
+                ? `Price don confirm! Your new price for ${product.name} na ${currentBid} FCFA (${discountPercentage}% discount). This price na only for this session, e go reset when you close your browser.`
+                : `Price confirmed! Your new price for ${product.name} is ${currentBid} FCFA (${discountPercentage}% discount). This price is temporary and will reset when you close your browser.`,
         },
       ])
 
@@ -233,7 +255,7 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
       // Show success toast
       toast({
         title: "Bid accepted!",
-        description: `Your negotiated price of ${currentBid} FCFA for ${product.name} has been saved.`,
+        description: `Your negotiated price of ${currentBid} FCFA (${discountPercentage}% off) for ${product.name} has been saved for this session only.`,
       })
 
       // Close the modal after a short delay to show the confirmation
@@ -255,7 +277,8 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
             </Badge>
           </DialogTitle>
           <DialogDescription>
-            Negotiate the price for {product.name} - Current price: {product.price} FCFA
+            Negotiate the price for {product.name} - Current price: {product.price} FCFA per {product.unit || "item"}
+            {product.quantityDescription && <span className="block text-xs mt-1">({product.quantityDescription})</span>}
           </DialogDescription>
         </DialogHeader>
 
@@ -285,9 +308,7 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
                 </Select>
               </div>
               <div className="flex items-center gap-1 text-sm">
-                <span className="text-muted-foreground">Min price:</span>
-                <span className="font-medium">{minPrice} FCFA</span>
-                <span className="text-muted-foreground ml-1">(30% off)</span>
+                <span className="text-muted-foreground">Make an offer below the current price</span>
               </div>
             </div>
 
@@ -328,6 +349,33 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Highlight the accept offer button when an offer is accepted */}
+            {offerAccepted && currentBid !== null && currentBid >= minPrice && currentBid < product.price && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center justify-between">
+                <div className="flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                  <div>
+                    <p className="font-medium text-green-800">Offer accepted!</p>
+                    <p className="text-sm text-green-600">
+                      New price: {currentBid} FCFA ({Math.round(((product.price - currentBid) / product.price) * 100)}%
+                      off)
+                    </p>
+                    <p className="text-xs text-green-600">
+                      This price is temporary and will reset when you close your browser.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleAcceptBid}
+                  className="bg-green-600 hover:bg-green-700 shadow-md transition-all hover:shadow-lg"
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Accept & Add to Cart
+                </Button>
+              </div>
+            )}
+
             {isConfirming && (
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
                 <div className="bg-green-100 p-3 rounded-full mb-4">
@@ -341,20 +389,30 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
                       ? `Your new price for ${product.name} na ${currentBid} FCFA.`
                       : `Your new price for ${product.name} is ${currentBid} FCFA.`}
                 </p>
+                <p className="text-center text-sm text-green-600 max-w-xs mt-1">
+                  This price is temporary and will reset when you close your browser.
+                </p>
               </div>
             )}
+
             <DialogFooter className="flex justify-between items-center mt-4">
               <div className="flex items-center gap-1">
-                {currentBid !== null && currentBid >= minPrice && (
+                {currentBid !== null && currentBid >= minPrice && currentBid < product.price && (
                   <div className="flex items-center text-sm text-green-600">
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Offer acceptable
                   </div>
                 )}
                 {currentBid !== null && currentBid < minPrice && (
-                  <div className="flex items-center text-sm text-red-500">
+                  <div className="flex items-center text-sm text-amber-500">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    Offer too low
+                    Consider a higher offer
+                  </div>
+                )}
+                {currentBid !== null && currentBid >= product.price && (
+                  <div className="flex items-center text-sm text-blue-500">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    No need to pay full price
                   </div>
                 )}
               </div>
@@ -362,24 +420,28 @@ export default function BiddingModal({ isOpen, onClose, product, isPremiumUser, 
                 <Button variant="outline" onClick={onClose} disabled={isConfirming}>
                   Cancel
                 </Button>
-                <Button
-                  className={`${isConfirming ? "bg-green-700" : "bg-green-600 hover:bg-green-700"} relative`}
-                  disabled={currentBid === null || currentBid < minPrice || isConfirming}
-                  onClick={handleAcceptBid}
-                  size="lg"
-                >
-                  {isConfirming ? (
-                    <>
-                      <span className="opacity-0">Accept Offer</span>
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <CheckCircle className="h-5 w-5 mr-2 animate-pulse" />
-                        Price Updated!
-                      </span>
-                    </>
-                  ) : (
-                    <>Accept Offer</>
-                  )}
-                </Button>
+                {!offerAccepted && (
+                  <Button
+                    className={`${isConfirming ? "bg-green-700" : "bg-green-600 hover:bg-green-700"} relative`}
+                    disabled={
+                      currentBid === null || currentBid < minPrice || currentBid >= product.price || isConfirming
+                    }
+                    onClick={handleAcceptBid}
+                    size="lg"
+                  >
+                    {isConfirming ? (
+                      <>
+                        <span className="opacity-0">Accept Offer</span>
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <CheckCircle className="h-5 w-5 mr-2 animate-pulse" />
+                          Price Updated!
+                        </span>
+                      </>
+                    ) : (
+                      <>Accept Offer</>
+                    )}
+                  </Button>
+                )}
               </div>
             </DialogFooter>
           </>

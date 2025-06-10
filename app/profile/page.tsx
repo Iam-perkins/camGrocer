@@ -1,42 +1,22 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import Image from "next/image"
-import { useRouter, useSearchParams } from "next/navigation"
-import {
-  CreditCard,
-  Heart,
-  LogOut,
-  Package,
-  Settings,
-  Star,
-  Truck,
-  MapPin,
-  Phone,
-  Mail,
-  Edit,
-  Save,
-  Loader2,
-} from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { LogOut, Loader2, User, ShoppingBag, Package, MapPin, Phone, Mail, Edit2, CreditCard, Heart, History, Settings, Shield, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import { getProductById } from "@/lib/product-data"
+import { toast } from "sonner"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-interface UserData {
+type UserData = {
   id: string
   name: string
   email: string
@@ -47,142 +27,73 @@ interface UserData {
   type: "customer" | "store"
   avatar: string
   createdAt: string
+  loyaltyPoints?: number
+  preferredLanguage?: "en" | "fr"
+  preferredCurrency?: "XAF" | "USD"
+  hasStoreAccount?: boolean
 }
 
 export default function ProfilePage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const { toast } = useToast()
-  const defaultTab = searchParams.get("tab") || "orders"
-  const [activeTab, setActiveTab] = useState(defaultTab)
-  const [userData, setUserData] = useState<UserData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedUserData, setEditedUserData] = useState<UserData | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [activeTab, setActiveTab] = useState("overview")
 
-  // Mock orders data
-  const orders = [
-    {
-      id: "ORD-001",
-      date: "2023-04-01",
-      store: "Marché Central 1",
-      items: 3,
-      total: 15000,
-      status: "Delivered",
-    },
-    {
-      id: "ORD-002",
-      date: "2023-04-15",
-      store: "Marché Central 2",
-      items: 5,
-      total: 22000,
-      status: "Processing",
-    },
-    {
-      id: "ORD-003",
-      date: "2023-05-02",
-      store: "Marché Central 1",
-      items: 2,
-      total: 8500,
-      status: "Shipped",
-    },
-  ]
-
-  // Mock wishlist data
-  const wishlist = [
-    {
-      id: 1,
-      name: "Fresh Plantains",
-      price: 1500,
-      store: "Marché Central 1",
-      image: getProductById(1).image,
-    },
-    {
-      id: 4,
-      name: "Egusi Seeds",
-      price: 3500,
-      store: "Marché Central 3",
-      image: getProductById(4).image,
-    },
-    {
-      id: 9,
-      name: "Eru Leaves",
-      price: 2000,
-      store: "Marché Central 1",
-      image: getProductById(9).image,
-    },
-  ]
-
+  // Check authentication and load user data
   useEffect(() => {
-    // Get user data from localStorage
-    const userDataString = localStorage.getItem("currentUser")
+    if (typeof window === 'undefined') return
 
-    if (userDataString) {
-      try {
-        const parsedUserData = JSON.parse(userDataString)
-        setUserData(parsedUserData)
-        setEditedUserData(parsedUserData)
-      } catch (error) {
-        console.error("Failed to parse user data:", error)
-        router.push("/auth/login")
+    const checkAuth = () => {
+      const userDataString = localStorage.getItem("currentUser")
+      const authToken = localStorage.getItem("authToken")
+      
+      if (userDataString && authToken) {
+        try {
+          const parsedUser = JSON.parse(userDataString)
+          setUserData(parsedUser)
+          setIsLoading(false)
+        } catch (error) {
+          console.error("Error parsing user data:", error)
+          setIsLoading(false)
+        }
+      } else {
+        setIsLoading(false)
       }
-    } else {
-      // Redirect to login if no user data found
-      router.push("/auth/login")
     }
 
-    setIsLoading(false)
-  }, [router])
+    checkAuth()
+  }, [])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target
-    if (editedUserData) {
-      setEditedUserData({
-        ...editedUserData,
-        [id]: value,
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       })
-    }
-  }
 
-  const handleSaveChanges = () => {
-    setIsSaving(true)
-
-    // Simulate API call delay
-    setTimeout(() => {
-      if (editedUserData) {
-        // Update user data in localStorage
-        localStorage.setItem("currentUser", JSON.stringify(editedUserData))
-
-        // Update user data in state
-        setUserData(editedUserData)
-
-        // Show success toast
-        toast({
-          title: "Profile updated",
-          description: "Your profile information has been updated successfully.",
+      if (response.ok) {
+        localStorage.removeItem('currentUser')
+        localStorage.removeItem('authToken')
+        
+        toast.success("Logged out successfully", {
+          description: "You have been logged out of your account.",
         })
-
-        // Exit edit mode
-        setIsEditing(false)
+        
+        window.location.href = '/'
+      } else {
+        throw new Error('Logout failed')
       }
-
-      setIsSaving(false)
-    }, 1500)
-  }
-
-  const handleLogout = () => {
-    // Remove user data from localStorage
-    localStorage.removeItem("currentUser")
-
-    // Show toast notification
-    toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of your account.",
-    })
-
-    // Redirect to home page
-    router.push("/")
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast.error("Logout Failed", {
+        description: "Failed to log out. Please try again.",
+      })
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   if (isLoading) {
@@ -202,19 +113,17 @@ export default function ProfilePage() {
       <div className="flex flex-col min-h-screen">
         <SiteHeader />
         <main className="flex-1 container py-10">
-          <Card>
+          <Card className="max-w-md mx-auto">
             <CardHeader>
               <CardTitle>Authentication Required</CardTitle>
               <CardDescription>Please sign in to view your profile</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <p>You need to be logged in to access this page.</p>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={() => router.push("/auth/login")} className="bg-green-600 hover:bg-green-700">
-                Sign In
+              <Button onClick={() => router.push('/auth/login')} className="w-full">
+                Go to Login
               </Button>
-            </CardFooter>
+            </CardContent>
           </Card>
         </main>
         <SiteFooter />
@@ -223,410 +132,337 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <SiteHeader />
       <main className="flex-1 container py-10">
-        <ScrollReveal>
-          <div className="grid gap-8 md:grid-cols-[240px_1fr]">
-            <Card className="h-fit">
-              <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                  <Image
-                    src={userData.avatar || "/placeholder.svg"}
-                    alt={userData.name}
-                    fill
-                    className="object-cover"
-                  />
+        <div className="max-w-6xl mx-auto">
+          {/* Profile Header */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
+                  <AvatarImage src={userData.avatar} alt={userData.name} />
+                  <AvatarFallback className="bg-green-100 text-green-800 text-2xl">
+                    {userData.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+            <div>
+                  <h1 className="text-2xl font-bold">{userData.name}</h1>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    <span>{userData.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground mt-1">
+                    <Phone className="h-4 w-4" />
+                    <span>{userData.phone || 'Not provided'}</span>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>{userData.name}</CardTitle>
-                  <CardDescription>{userData.email}</CardDescription>
-                </div>
+            </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/profile/edit')}
+                  className="gap-2"
+                >
+                  <Edit2 className="h-4 w-4" />
+                  Edit Profile
+                </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 gap-2"
+            >
+              {isLoggingOut ? (
+                <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                  Logging out...
+                </>
+              ) : (
+                <>
+                      <LogOut className="h-4 w-4" />
+                  Logout
+                </>
+              )}
+            </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Sidebar */}
+            <div className="md:col-span-1">
+              <Card>
+                <CardContent className="p-4">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="flex flex-col h-full w-full">
+                      <TabsTrigger
+                        value="overview"
+                        className="w-full justify-start gap-2"
+                      >
+                        <User className="h-4 w-4" />
+                        Overview
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="orders"
+                        className="w-full justify-start gap-2"
+                      >
+                        <Package className="h-4 w-4" />
+                        Orders
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="wishlist"
+                        className="w-full justify-start gap-2"
+                      >
+                        <Heart className="h-4 w-4" />
+                        Wishlist
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="payment"
+                        className="w-full justify-start gap-2"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Payment Methods
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="settings"
+                        className="w-full justify-start gap-2"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </CardContent>
+              </Card>
+          </div>
+
+            {/* Main Content Area */}
+            <div className="md:col-span-3">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <TabsContent value="overview" className="space-y-4">
+                  {/* Account Summary */}
+            <Card>
+              <CardHeader>
+                      <CardTitle>Account Summary</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <nav className="grid">
-                  <Button
-                    variant={activeTab === "orders" ? "default" : "ghost"}
-                    className="justify-start rounded-none h-12"
-                    onClick={() => setActiveTab("orders")}
-                  >
-                    <Package className="mr-2 h-4 w-4" />
-                    Orders
-                  </Button>
-                  <Button
-                    variant={activeTab === "wishlist" ? "default" : "ghost"}
-                    className="justify-start rounded-none h-12"
-                    onClick={() => setActiveTab("wishlist")}
-                  >
-                    <Heart className="mr-2 h-4 w-4" />
-                    Wishlist
-                  </Button>
-                  <Button
-                    variant={activeTab === "addresses" ? "default" : "ghost"}
-                    className="justify-start rounded-none h-12"
-                    onClick={() => setActiveTab("addresses")}
-                  >
-                    <Truck className="mr-2 h-4 w-4" />
-                    Addresses
-                  </Button>
-                  <Button
-                    variant={activeTab === "payment" ? "default" : "ghost"}
-                    className="justify-start rounded-none h-12"
-                    onClick={() => setActiveTab("payment")}
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Payment Methods
-                  </Button>
-                  <Button
-                    variant={activeTab === "reviews" ? "default" : "ghost"}
-                    className="justify-start rounded-none h-12"
-                    onClick={() => setActiveTab("reviews")}
-                  >
-                    <Star className="mr-2 h-4 w-4" />
-                    Reviews
-                  </Button>
-                  <Button
-                    variant={activeTab === "account" ? "default" : "ghost"}
-                    className="justify-start rounded-none h-12"
-                    onClick={() => setActiveTab("account")}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Account Settings
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start rounded-none h-12 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </Button>
-                </nav>
+              <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <div className="text-sm text-green-600 font-medium">Loyalty Points</div>
+                          <div className="text-2xl font-bold text-green-700 mt-1">
+                            {userData.loyaltyPoints || 0}
+                    </div>
+                  </div>
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <div className="text-sm text-blue-600 font-medium">Total Orders</div>
+                          <div className="text-2xl font-bold text-blue-700 mt-1">0</div>
+                    </div>
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <div className="text-sm text-purple-600 font-medium">Wishlist Items</div>
+                          <div className="text-2xl font-bold text-purple-700 mt-1">0</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-            <div>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsContent value="orders" className="mt-0">
+
+                  {/* Delivery Address */}
+            <Card>
+              <CardHeader>
+                      <CardTitle>Delivery Address</CardTitle>
+              </CardHeader>
+              <CardContent>
+                      <div className="flex items-start gap-4">
+                        <MapPin className="h-5 w-5 text-muted-foreground mt-1" />
+                        <div>
+                          <p className="font-medium">{userData.address || 'No address provided'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {userData.city && userData.region 
+                              ? `${userData.city}, ${userData.region}`
+                              : 'Location not specified'}
+                          </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+                  {/* Recent Activity */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Order History</CardTitle>
-                      <CardDescription>View and track your orders</CardDescription>
+                      <CardTitle>Recent Activity</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Store</TableHead>
-                            <TableHead>Items</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {orders.map((order) => (
-                            <TableRow key={order.id}>
-                              <TableCell className="font-medium">{order.id}</TableCell>
-                              <TableCell>{order.date}</TableCell>
-                              <TableCell>{order.store}</TableCell>
-                              <TableCell>{order.items}</TableCell>
-                              <TableCell>{order.total} FCFA</TableCell>
-                              <TableCell>
-                                <span
-                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                    order.status === "Delivered"
-                                      ? "bg-green-100 text-green-800"
-                                      : order.status === "Processing"
-                                        ? "bg-yellow-100 text-yellow-800"
-                                        : "bg-blue-100 text-blue-800"
-                                  }`}
-                                >
-                                  {order.status}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <Button variant="ghost" size="sm">
-                                  View
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="wishlist" className="mt-0">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Wishlist</CardTitle>
-                      <CardDescription>Products you've saved for later</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {wishlist.map((item) => (
-                          <Card key={item.id}>
-                            <CardContent className="p-0">
-                              <div className="flex p-4">
-                                <div className="w-20 h-20 rounded-md overflow-hidden flex-shrink-0">
-                                  <Image
-                                    src={item.image || "/placeholder.svg"}
-                                    alt={item.name}
-                                    width={80}
-                                    height={80}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="ml-4 flex-1">
-                                  <h3 className="font-medium">{item.name}</h3>
-                                  <p className="text-sm text-muted-foreground">{item.store}</p>
-                                  <p className="font-semibold mt-2">{item.price} FCFA</p>
-                                </div>
-                              </div>
-                              <div className="flex border-t">
-                                <Button variant="ghost" className="flex-1 rounded-none h-12">
-                                  Remove
-                                </Button>
-                                <Separator orientation="vertical" />
-                                <Button variant="ghost" className="flex-1 rounded-none h-12">
-                                  Add to Cart
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <History className="h-4 w-4" />
+                          <span>No recent activity</span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
-                <TabsContent value="addresses" className="mt-0">
+
+                <TabsContent value="orders" className="space-y-4">
+            <Card>
+              <CardHeader>
+                      <CardTitle>Your Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No orders yet</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Your orders will appear here once you make a purchase.
+                  </p>
+                  <Button className="mt-4" onClick={() => router.push('/products')}>
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Start Shopping
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+                </TabsContent>
+
+                <TabsContent value="wishlist" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Delivery Addresses</CardTitle>
-                      <CardDescription>Manage your delivery addresses</CardDescription>
+                      <CardTitle>Your Wishlist</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-6">
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-base">Home</CardTitle>
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                Default
-                              </span>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-sm">{userData.name}</p>
-                            <p className="text-sm">{userData.phone}</p>
-                            <p className="text-sm">{userData.address}</p>
-                            <p className="text-sm">
-                              {userData.city}, {userData.region}
-                            </p>
-                          </CardContent>
-                          <CardFooter className="flex justify-between border-t pt-4">
-                            <Button variant="ghost" size="sm">
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              Delete
-                            </Button>
-                          </CardFooter>
-                        </Card>
-                        <Button className="bg-green-600 hover:bg-green-700">Add New Address</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="account" className="mt-0">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div>
-                        <CardTitle>Account Settings</CardTitle>
-                        <CardDescription>Update your account information</CardDescription>
-                      </div>
-                      {!isEditing ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsEditing(true)}
-                          className="flex items-center gap-1"
-                        >
-                          <Edit className="h-4 w-4" />
-                          Edit Profile
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <Heart className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium">Your wishlist is empty</h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Save items you like to your wishlist for later.
+                        </p>
+                        <Button className="mt-4" onClick={() => router.push('/products')}>
+                          <ShoppingBag className="h-4 w-4 mr-2" />
+                          Browse Products
                         </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setIsEditing(false)
-                            setEditedUserData(userData)
-                          }}
-                          className="flex items-center gap-1"
-                        >
-                          Cancel
-                        </Button>
-                      )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="payment" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Payment Methods</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <AnimatePresence mode="wait">
-                        {isEditing ? (
-                          <motion.form
-                            className="space-y-6"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <div className="space-y-2">
-                              <Label htmlFor="name">Full Name</Label>
-                              <Input id="name" value={editedUserData?.name || ""} onChange={handleInputChange} />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="email">Email</Label>
-                              <Input
-                                id="email"
-                                type="email"
-                                value={editedUserData?.email || ""}
-                                onChange={handleInputChange}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="phone">Phone</Label>
-                              <Input
-                                id="phone"
-                                type="tel"
-                                value={editedUserData?.phone || ""}
-                                onChange={handleInputChange}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="address">Address</Label>
-                              <Textarea
-                                id="address"
-                                value={editedUserData?.address || ""}
-                                onChange={handleInputChange}
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="city">City</Label>
-                                <Input id="city" value={editedUserData?.city || ""} onChange={handleInputChange} />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="region">Region</Label>
-                                <Input id="region" value={editedUserData?.region || ""} onChange={handleInputChange} />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="current-password">Current Password</Label>
-                              <Input id="current-password" type="password" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="new-password">New Password</Label>
-                              <Input id="new-password" type="password" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="confirm-password">Confirm New Password</Label>
-                              <Input id="confirm-password" type="password" />
-                            </div>
-                            <Button
-                              type="button"
-                              className="w-full bg-green-600 hover:bg-green-700"
-                              onClick={handleSaveChanges}
-                              disabled={isSaving}
-                            >
-                              {isSaving ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Saving Changes...
-                                </>
-                              ) : (
-                                <>
-                                  <Save className="mr-2 h-4 w-4" />
-                                  Save Changes
-                                </>
-                              )}
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium">No payment methods</h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Add a payment method to make checkout faster.
+                        </p>
+                        <Button className="mt-4" onClick={() => router.push('/profile/payment')}>
+                          Add Payment Method
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="settings" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Account Settings</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <Label>Preferred Language</Label>
+                          <div className="flex gap-2">
+                            <Button variant={userData.preferredLanguage === 'en' ? 'default' : 'outline'}>
+                              English
                             </Button>
-                          </motion.form>
+                            <Button variant={userData.preferredLanguage === 'fr' ? 'default' : 'outline'}>
+                              Français
+                            </Button>
+                          </div>
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                          <Label>Preferred Currency</Label>
+                          <div className="flex gap-2">
+                            <Button variant={userData.preferredCurrency === 'XAF' ? 'default' : 'outline'}>
+                              XAF
+                            </Button>
+                            <Button variant={userData.preferredCurrency === 'USD' ? 'default' : 'outline'}>
+                              USD
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Store Owner Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Store className="h-5 w-5" />
+                        Store Owner Account
+                      </CardTitle>
+                      <CardDescription>
+                        Manage your store or create a new one
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {userData.hasStoreAccount ? (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Shield className="h-4 w-4" />
+                              <span>You have an active store account</span>
+                            </div>
+                            <Button 
+                              className="w-full"
+                              onClick={() => router.push('/store/dashboard')}
+                            >
+                              <Store className="h-4 w-4 mr-2" />
+                              Continue as Store Owner
+                            </Button>
+                          </div>
                         ) : (
-                          <motion.div
-                            className="space-y-6"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <div className="grid gap-6 md:grid-cols-2">
-                              <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">Full Name</h3>
-                                <p>{userData.name}</p>
-                              </div>
-                              <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">Email</h3>
-                                <p>{userData.email}</p>
-                              </div>
-                              <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">Phone</h3>
-                                <p>{userData.phone}</p>
-                              </div>
-                              <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">Member Since</h3>
-                                <p>{new Date(userData.createdAt).toLocaleDateString()}</p>
-                              </div>
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Shield className="h-4 w-4" />
+                              <span>You don't have a store account yet</span>
                             </div>
-
-                            <Separator />
-
-                            <div>
-                              <h3 className="text-sm font-medium text-muted-foreground mb-2">Address</h3>
-                              <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                <p>
-                                  {userData.address}, {userData.city}, {userData.region}
-                                </p>
-                              </div>
-                            </div>
-
-                            <Separator />
-
-                            <div>
-                              <h3 className="text-sm font-medium text-muted-foreground mb-2">Contact Information</h3>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Phone className="h-4 w-4 text-muted-foreground" />
-                                  <p>{userData.phone}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Mail className="h-4 w-4 text-muted-foreground" />
-                                  <p>{userData.email}</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="pt-4">
-                              <Button variant="outline" className="w-full" onClick={() => setIsEditing(true)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Profile
+                            <div className="flex flex-col gap-2">
+                              <Button 
+                                className="w-full"
+                                asChild
+                              >
+                                <Link href="/auth/register">
+                                  <Store className="h-4 w-4 mr-2" />
+                                  Create Store Account
+                                </Link>
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                className="w-full"
+                                asChild
+                              >
+                                <Link href="/auth/login">
+                                  <LogOut className="h-4 w-4 mr-2" />
+                                  Login as Store Owner
+                                </Link>
                               </Button>
                             </div>
-                          </motion.div>
+                          </div>
                         )}
-                      </AnimatePresence>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
               </Tabs>
             </div>
           </div>
-        </ScrollReveal>
+        </div>
       </main>
       <SiteFooter />
     </div>

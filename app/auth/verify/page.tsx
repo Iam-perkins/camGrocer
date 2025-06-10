@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ShieldCheck, ShoppingBag, Upload, User, MapPin } from 'lucide-react'
+import { ShieldCheck, ShoppingBag, Upload, User, MapPin, X, Image as ImageIcon } from 'lucide-react'
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +16,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Badge } from "@/components/ui/badge"
 import { SiteHeader } from "@/components/site-header"
 import { bueaNeighborhoods } from "@/lib/product-data"
+import { Loader2 } from "lucide-react"
 
 export default function VerifyPage() {
   const router = useRouter()
@@ -29,10 +31,77 @@ export default function VerifyPage() {
     address: "",
     neighborhood: bueaNeighborhoods[0],
   })
+  const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null)
+  const [idBackPreview, setIdBackPreview] = useState<string | null>(null)
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
+  const idFrontRef = useRef<HTMLInputElement>(null)
+  const idBackRef = useRef<HTMLInputElement>(null)
+  const selfieRef = useRef<HTMLInputElement>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'idFront' | 'idBack' | 'selfie') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file (PNG, JPG, or JPEG)",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      switch (type) {
+        case 'idFront':
+          setIdFrontPreview(result)
+          break
+        case 'idBack':
+          setIdBackPreview(result)
+          break
+        case 'selfie':
+          setSelfiePreview(result)
+          break
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveImage = (type: 'idFront' | 'idBack' | 'selfie') => {
+    switch (type) {
+      case 'idFront':
+        setIdFrontPreview(null)
+        if (idFrontRef.current) idFrontRef.current.value = ''
+        break
+      case 'idBack':
+        setIdBackPreview(null)
+        if (idBackRef.current) idBackRef.current.value = ''
+        break
+      case 'selfie':
+        setSelfiePreview(null)
+        if (selfieRef.current) selfieRef.current.value = ''
+        break
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -138,7 +207,7 @@ export default function VerifyPage() {
                 )}
                 
                 {step === 2 && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="idType">ID Type</Label>
                       <select
@@ -166,33 +235,128 @@ export default function VerifyPage() {
                         required
                       />
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="idFront">ID Front</Label>
+                        <div className="relative">
+                          {idFrontPreview ? (
+                            <div className="relative aspect-[4/3] rounded-lg overflow-hidden border">
+                              <Image
+                                src={idFrontPreview}
+                                alt="ID Front"
+                                fill
+                                className="object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage('idFront')}
+                                className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => idFrontRef.current?.click()}
+                              className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-green-500 transition-colors"
+                            >
+                              <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                              <p className="text-sm text-muted-foreground mb-1">Click to upload or drag and drop</p>
+                              <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 5MB)</p>
+                            </div>
+                          )}
+                          <input
+                            ref={idFrontRef}
+                            type="file"
+                            id="idFront"
+                            accept="image/png,image/jpeg,image/jpg"
+                            className="hidden"
+                            onChange={(e) => handleFileChange(e, 'idFront')}
+                            required={!idFrontPreview}
+                          />
+                        </div>
+                    </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="idUpload">Upload ID Document (Front)</Label>
-                      <div className="border border-dashed rounded-md p-6 flex flex-col items-center justify-center">
+                        <Label htmlFor="idBack">ID Back</Label>
+                        <div className="relative">
+                          {idBackPreview ? (
+                            <div className="relative aspect-[4/3] rounded-lg overflow-hidden border">
+                              <Image
+                                src={idBackPreview}
+                                alt="ID Back"
+                                fill
+                                className="object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage('idBack')}
+                                className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => idBackRef.current?.click()}
+                              className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-green-500 transition-colors"
+                            >
                         <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground mb-2">Click to upload or drag and drop</p>
-                        <p className="text-xs text-muted-foreground">PNG, JPG or PDF (max. 5MB)</p>
-                        <Input
-                          id="idUpload"
+                              <p className="text-sm text-muted-foreground mb-1">Click to upload or drag and drop</p>
+                              <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 5MB)</p>
+                            </div>
+                          )}
+                          <input
+                            ref={idBackRef}
                           type="file"
+                            id="idBack"
+                            accept="image/png,image/jpeg,image/jpg"
                           className="hidden"
-                          accept="image/png,image/jpeg,application/pdf"
+                            onChange={(e) => handleFileChange(e, 'idBack')}
+                            required={!idBackPreview}
                         />
+                        </div>
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="selfieUpload">Upload Selfie with ID</Label>
-                      <div className="border border-dashed rounded-md p-6 flex flex-col items-center justify-center">
+                      <Label htmlFor="selfie">Selfie with ID</Label>
+                      <div className="relative">
+                        {selfiePreview ? (
+                          <div className="relative aspect-square rounded-lg overflow-hidden border">
+                            <Image
+                              src={selfiePreview}
+                              alt="Selfie with ID"
+                              fill
+                              className="object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage('selfie')}
+                              className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => selfieRef.current?.click()}
+                            className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-green-500 transition-colors"
+                          >
                         <User className="h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground mb-2">Take a selfie holding your ID</p>
-                        <p className="text-xs text-muted-foreground">PNG or JPG (max. 5MB)</p>
-                        <Input
-                          id="selfieUpload"
+                            <p className="text-sm text-muted-foreground mb-1">Take a selfie holding your ID</p>
+                            <p className="text-xs text-muted-foreground">PNG, JPG or JPEG (max. 5MB)</p>
+                          </div>
+                        )}
+                        <input
+                          ref={selfieRef}
                           type="file"
+                          id="selfie"
+                          accept="image/png,image/jpeg,image/jpg"
                           className="hidden"
-                          accept="image/png,image/jpeg"
+                          onChange={(e) => handleFileChange(e, 'selfie')}
+                          required={!selfiePreview}
                         />
                       </div>
                     </div>
@@ -257,8 +421,24 @@ export default function VerifyPage() {
                     </Button>
                   )}
                   
-                  <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                    {step < 3 ? "Continue" : "Submit Verification"}
+                  <Button
+                    type={step === 3 ? "submit" : "button"}
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => step < 3 && setStep(step + 1)}
+                    disabled={isUploading}
+                  >
+                    {step === 3 ? (
+                      isUploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit Verification"
+                      )
+                    ) : (
+                      "Next"
+                    )}
                   </Button>
                 </div>
               </form>

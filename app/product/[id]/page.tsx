@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useParams } from "next/navigation"
-import { Heart, Minus, Plus, ShoppingBag, ShoppingCart, Star, MessageSquare, CheckCircle } from "lucide-react"
+import { Heart, Minus, Plus, ShoppingBag, ShoppingCart, Star, MessageSquare, CheckCircle, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,8 +14,11 @@ import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import BiddingModal from "@/components/bidding-modal"
 import { getProductById } from "@/lib/product-data"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+// Add import for ImageWithFallback
+import { ImageWithFallback } from "@/components/image-with-fallback"
 
-// Type for negotiated prices
+// Type for negotiated prices - now using sessionStorage instead of localStorage
 type NegotiatedPrice = {
   productId: number
   price: number
@@ -30,16 +32,16 @@ export default function ProductPage() {
   const [isPremiumUser, setIsPremiumUser] = useState(false)
   const [negotiatedPrices, setNegotiatedPrices] = useState<NegotiatedPrice[]>([])
 
-  // Load negotiated prices from localStorage
+  // Load negotiated prices from sessionStorage instead of localStorage
   useEffect(() => {
-    const savedNegotiatedPrices = localStorage.getItem("negotiatedPrices")
+    const savedNegotiatedPrices = sessionStorage.getItem("negotiatedPrices")
     if (savedNegotiatedPrices) {
       setNegotiatedPrices(JSON.parse(savedNegotiatedPrices))
     }
 
     // For demo purposes, we'll check if the user is premium
     // In a real app, this would come from your authentication system
-    const isPremium = localStorage.getItem("isPremiumUser") === "true"
+    const isPremium = sessionStorage.getItem("isPremiumUser") === "true"
     setIsPremiumUser(isPremium)
   }, [])
 
@@ -191,7 +193,7 @@ export default function ProductPage() {
     }
   }
 
-  // Update the handleBidAccepted function to immediately reflect the price change
+  // Update the handleBidAccepted function to save to sessionStorage instead of localStorage
   const handleBidAccepted = (productId: number, newPrice: number) => {
     // Update negotiated prices
     const updatedPrices = [
@@ -200,13 +202,13 @@ export default function ProductPage() {
     ]
     setNegotiatedPrices(updatedPrices)
 
-    // Save to localStorage
-    localStorage.setItem("negotiatedPrices", JSON.stringify(updatedPrices))
+    // Save to sessionStorage instead of localStorage
+    sessionStorage.setItem("negotiatedPrices", JSON.stringify(updatedPrices))
 
     // Show a more prominent success message
     toast({
       title: "Price updated!",
-      description: `Your negotiated price of ${newPrice} FCFA for ${product.name} has been applied.`,
+      description: `Your negotiated price of ${newPrice} FCFA for ${product.name} has been applied for this session.`,
       duration: 5000,
     })
   }
@@ -215,7 +217,7 @@ export default function ProductPage() {
   const togglePremiumStatus = () => {
     const newStatus = !isPremiumUser
     setIsPremiumUser(newStatus)
-    localStorage.setItem("isPremiumUser", newStatus.toString())
+    sessionStorage.setItem("isPremiumUser", newStatus.toString())
 
     toast({
       title: newStatus ? "Premium activated" : "Premium deactivated",
@@ -251,16 +253,19 @@ export default function ProductPage() {
       <main className="flex-1 container py-8">
         <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
           <div className="space-y-4">
+            {/* Replace Image with ImageWithFallback in the main product image section */}
             <div className="aspect-square overflow-hidden rounded-lg border">
-              <Image
+              <ImageWithFallback
                 src={selectedImage || product.image}
                 alt={product.name}
                 width={500}
                 height={500}
                 className="w-full h-full object-cover"
+                fallbackSrc="/placeholder.svg?height=500&width=500&text=Product+Image"
               />
             </div>
             <div className="flex gap-4 overflow-auto pb-2">
+              {/* Replace Image with ImageWithFallback in the thumbnail section */}
               {product.images &&
                 product.images.map((image, index) => (
                   <button
@@ -270,12 +275,13 @@ export default function ProductPage() {
                     }`}
                     onClick={() => setSelectedImage(image)}
                   >
-                    <Image
+                    <ImageWithFallback
                       src={image || "/placeholder.svg"}
                       alt={`${product.name} ${index + 1}`}
                       width={80}
                       height={80}
                       className="h-full w-full object-cover"
+                      fallbackSrc="/placeholder.svg?height=80&width=80&text=Thumbnail"
                     />
                   </button>
                 ))}
@@ -303,6 +309,15 @@ export default function ProductPage() {
                 </span>
               </div>
 
+              {/* Quantity information - made more prominent */}
+              <div className="mt-3 bg-gray-50 p-3 rounded-md border border-gray-200">
+                <div className="flex items-center">
+                  <Info className="h-4 w-4 text-gray-500 mr-2" />
+                  <span className="font-medium">Quantity/Unit:</span>
+                  <span className="ml-2">{product.quantityDescription || "1 item"}</span>
+                </div>
+              </div>
+
               {/* Price display with negotiated price if available */}
               <div className="mt-4 flex items-center gap-3">
                 {getNegotiatedPrice() !== null && (
@@ -314,15 +329,32 @@ export default function ProductPage() {
                     </Badge>
                   </>
                 )}
-                {getNegotiatedPrice() === null && <div className="text-3xl font-bold">{product.price} FCFA</div>}
+                {getNegotiatedPrice() === null && (
+                  <div className="flex items-center">
+                    <div className="text-3xl font-bold">{product.price} FCFA</div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="ml-2 text-sm text-muted-foreground flex items-center">
+                            per {product.unit || "item"}
+                            <Info className="h-3 w-3 ml-1" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Price is for {product.quantityDescription}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
               </div>
 
               {getNegotiatedPrice() !== null && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md flex items-center">
                   <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
                   <span className="text-sm text-green-700">
-                    Your negotiated price has been applied! You're saving{" "}
-                    {Math.round(((product.price - getNegotiatedPrice()!) / product.price) * 100)}%.
+                    Your negotiated price has been applied! This discount is temporary and will reset when you close
+                    your browser.
                   </span>
                 </div>
               )}
@@ -354,6 +386,9 @@ export default function ProductPage() {
                     <span className="sr-only">Increase</span>
                   </Button>
                 </div>
+              </div>
+              <div className="mt-2 text-sm text-gray-500 text-right">
+                Total: {(getCurrentPrice() * quantity).toLocaleString()} FCFA
               </div>
               <div className="mt-4 flex flex-col sm:flex-row gap-2">
                 <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleAddToCart}>
@@ -395,6 +430,10 @@ export default function ProductPage() {
                   {product.store}
                 </Link>
               </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Quantity/Unit</span>
+                <span>{product.quantityDescription || "1 item"}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -420,6 +459,12 @@ export default function ProductPage() {
                       <li>No preservatives or artificial additives</li>
                       <li>Rich in essential nutrients</li>
                       <li>Perfect for traditional Cameroonian dishes</li>
+                      <li>
+                        <strong>Quantity/Unit:</strong> {product.quantityDescription || "1 item"}
+                      </li>
+                      <li>
+                        <strong>Price:</strong> {product.price} FCFA per {product.unit || "item"}
+                      </li>
                     </ul>
                     <h3>Storage Instructions</h3>
                     <p>
@@ -479,18 +524,26 @@ export default function ProductPage() {
             {relatedProducts.map((relatedProduct) => (
               <Card key={relatedProduct.id} className="overflow-hidden">
                 <Link href={`/product/${relatedProduct.id}`} className="block">
-                  <Image
+                  {/* Replace Image with ImageWithFallback in the related products section */}
+                  <ImageWithFallback
                     src={relatedProduct.image || "/placeholder.svg"}
                     alt={relatedProduct.name}
                     width={200}
                     height={200}
                     className="w-full h-48 object-cover"
+                    fallbackSrc="/placeholder.svg?height=200&width=200&text=Related+Product"
                   />
                   <CardContent className="p-4">
                     <h3 className="font-semibold">{relatedProduct.name}</h3>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="font-bold">{relatedProduct.price} FCFA</span>
-                      <span className="text-green-600 hover:text-green-700 text-sm">View Details</span>
+                    <div className="flex flex-col mt-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="font-bold">{relatedProduct.price} FCFA</span>
+                          <span className="text-xs text-muted-foreground ml-1">/{relatedProduct.unit || "item"}</span>
+                        </div>
+                        <span className="text-green-600 hover:text-green-700 text-sm">View Details</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{relatedProduct.quantityDescription}</div>
                     </div>
                   </CardContent>
                 </Link>

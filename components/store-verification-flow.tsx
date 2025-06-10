@@ -94,7 +94,12 @@ export function StoreVerificationFlow({ initialData, onComplete }: StoreVerifica
   }
 
   const handleImageSelected = (field: keyof StoreData, imageUrl: string) => {
-    setStoreData((prev) => ({ ...prev, [field]: imageUrl }))
+    console.log(`Updating ${field} with new image URL`)
+    setStoreData((prev) => {
+      const newState = { ...prev, [field]: imageUrl }
+      console.log('New state:', newState)
+      return newState
+    })
   }
 
   const handleNextStep = () => {
@@ -150,14 +155,65 @@ export function StoreVerificationFlow({ initialData, onComplete }: StoreVerifica
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true)
 
-    // Simulate API call delay
-    setTimeout(() => {
-      onComplete(storeData)
+    try {
+      // Create a store application object
+      const storeApplication = {
+        ownerName: storeData.ownerName,
+        email: storeData.email,
+        phone: storeData.phone,
+        storeName: storeData.storeName,
+        storeType: storeData.storeType,
+        description: storeData.description,
+        address: storeData.location, // Using location as address to match the schema
+        businessRegNumber: storeData.businessRegNumber,
+        taxId: storeData.taxId,
+        idType: storeData.idType,
+        idNumber: storeData.idNumber,
+        documents: {
+          idFront: storeData.idFrontImage,
+          idBack: storeData.idBackImage,
+          selfie: storeData.selfieWithId,
+          businessCertificate: storeData.businessCertificate,
+          utilityBill: storeData.utilityBill,
+          bankStatement: storeData.bankStatement,
+        },
+        password: storeData.password || 'temporary-password',
+        verificationStatus: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      // Call the register-store-owner API
+      const response = await fetch('/api/auth/register-store-owner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(storeApplication),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to submit application')
+      }
+
+      // Call the onComplete callback with the store data
+      onComplete(storeData as any)
+    } catch (error) {
+      console.error('Error submitting application:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to submit application',
+        variant: 'destructive',
+      })
       setIsSubmitting(false)
-    }, 2000)
+      return
+    }
+
+    setIsSubmitting(false)
   }
 
   return (

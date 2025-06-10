@@ -1,198 +1,217 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import type React from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Search, ShoppingBag, ShoppingCart } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { ShoppingBag, ShoppingCart, Search, Menu, User, ImageIcon, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { LocationSelector } from "@/components/location-selector"
-import { UserProfileDropdown } from "@/components/user-profile-dropdown"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { LanguageSwitcher } from "@/components/language-switcher"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/lib/use-translation"
+import { useSearch } from "@/contexts/search-context"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { UserProfileDropdown } from "@/components/user-profile-dropdown"
 
 interface SiteHeaderProps {
-  cartItemCount?: number
-  searchQuery?: string
-  onSearchChange?: (value: string) => void
+  cartItemCount?: number;
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
 }
 
-export function SiteHeader({ cartItemCount = 0, searchQuery = "", onSearchChange }: SiteHeaderProps) {
+// Default translations as fallback
+export function SiteHeader({ cartItemCount = 0 }: SiteHeaderProps) {
   const pathname = usePathname()
-  const [scrolled, setScrolled] = useState(false)
-  const prevScrollPosRef = useRef(0)
-  const [visible, setVisible] = useState(true)
-  const { t } = useLanguage()
+  const [mounted, setMounted] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  // Safe access to translation context
+  const { t, language } = useTranslation()
+  const { query, search, results, loading } = useSearch()
 
-  // Determine if we're on an admin page
-  const isAdminPage = pathname.startsWith("/admin")
-
-  // Handle scroll events
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollPos = window.scrollY
+    setMounted(true)
+    // Check if user is admin - in a real app, this would come from your auth system
+    // For demo purposes, we'll just set it to true
+    setIsAdmin(true)
+  }, [language])
 
-      // Determine if we've scrolled past a threshold
-      setScrolled(currentScrollPos > 10)
+  // Use t function directly for translations
+  const translations = {
+    home: t('home'),
+    browse: t('browse'),
+    about: t('about'),
+    contact: t('contact'),
+    profile: t('profile'),
+    cart: t('cart'),
+    search_placeholder: t('search_placeholder'),
+    images: t('images'),
+    master_admin: t('master_admin')
+  }
 
-      // Hide/show header based on scroll direction
-      setVisible(prevScrollPosRef.current > currentScrollPos || currentScrollPos < 10)
+  const isActive = (path: string) => {
+    return pathname === path
+  }
 
-      // Update the ref instead of state
-      prevScrollPosRef.current = currentScrollPos
-    }
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    search(value)
+  }
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  const navItems = [
+    { href: "/", label: t("home") },
+    { href: "/browse", label: t("browse") },
+    { href: "/about", label: t("about") },
+    { href: "/contact", label: t("contact") },
+    // { href: "/profile", label: t("profile") },
+    { href: "/cart", label: t("cart") },
+  ]
+
+  // Don't render anything until client-side hydration is complete
+  if (!mounted) {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 bg-green-600" />
+            <span className="text-xl font-bold hidden md:inline-block">CamGrocer</span>
+          </div>
+          <div className="flex-1" />
+        </div>
+      </header>
+    )
+  }
 
   return (
-    <motion.header
-      className={`sticky top-0 z-50 w-full border-b backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ${
-        scrolled ? "bg-background/95 shadow-sm" : "bg-background"
-      }`}
-      initial={{ y: 0, opacity: 1 }}
-      animate={{
-        y: visible ? 0 : -100,
-        opacity: visible ? 1 : 0,
-      }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="container flex h-16 items-center justify-between">
-        <motion.div
-          className="flex items-center gap-2"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <div className="flex items-center gap-2 min-w-[120px]">
           <Link href="/" className="flex items-center gap-2">
-            <motion.div
-              whileHover={{ rotate: 10, scale: 1.1 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              <ShoppingBag className="h-6 w-6 text-green-600" />
-            </motion.div>
-            <motion.span
-              className="text-xl font-bold"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              CameroonGrocer
-            </motion.span>
+            <ShoppingBag className="h-6 w-6 text-green-600 flex-shrink-0" />
+            <span className="text-xl font-bold hidden md:inline-block">CamGrocer</span>
           </Link>
-          <div className="ml-2 hidden sm:flex items-center">
-            <LocationSelector />
+        </div>
+
+        <nav className="hidden md:flex items-center justify-center flex-1 px-4 lg:px-8">
+          <div className="flex items-center gap-4 lg:gap-8">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+                className={`text-sm font-medium transition-colors hover:text-primary whitespace-nowrap ${
+                isActive(item.href) ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+        </nav>
+
+        <div className="hidden md:flex items-center justify-center flex-1 px-4 lg:px-8">
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={t("search_placeholder")}
+              className="w-full pl-8 md:w-[200px] lg:w-[300px]"
+              value={query}
+              onChange={handleSearchChange}
+              onFocus={() => setIsSearchOpen(true)}
+              onBlur={() => setIsSearchOpen(false)}
+            />
           </div>
-        </motion.div>
+        </div>
 
-        {!isAdminPage && (
-          <>
-            <motion.div
-              className="hidden md:flex md:flex-1 md:items-center md:justify-center"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search for groceries..."
-                  className="w-full pl-8 md:w-[300px] lg:w-[400px] transition-all duration-300 focus:md:w-[350px] focus:lg:w-[450px]"
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-                />
+        {isSearchOpen && results.length > 0 && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-background border rounded-lg shadow-md max-h-[400px] overflow-auto z-50 w-[90vw] max-w-2xl">
+            {loading ? (
+              <div className="p-4 text-center">
+                <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full"></span>
+                <span className="ml-2">{t('searching')}</span>
               </div>
-            </motion.div>
-
-            <motion.nav
-              className="hidden md:flex items-center gap-6 mr-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
-              {[
-                { href: "/", label: t("home") },
-                { href: "/browse", label: t("browse") },
-                { href: "/about", label: t("about") },
-                { href: "/contact", label: t("contact") },
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`text-sm font-medium relative ${
-                    pathname === item.href ? "text-green-600" : "hover:text-green-600"
-                  } transition-colors`}
-                >
-                  {item.label}
-                  {pathname === item.href && (
-                    <motion.span
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-green-600"
-                      layoutId="navbar-indicator"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              ))}
-            </motion.nav>
-
-            <motion.div
-              className="flex items-center gap-4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link href="/cart">
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                        <Button variant="outline" size="icon" className="relative">
-                          <ShoppingCart className="h-4 w-4" />
-                          <AnimatePresence>
-                            {cartItemCount > 0 && (
-                              <motion.span
-                                key="cart-count"
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0 }}
-                                className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
-                              >
-                                {cartItemCount}
-                              </motion.span>
-                            )}
-                          </AnimatePresence>
-                          <span className="sr-only">Cart</span>
-                        </Button>
-                      </motion.div>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Shopping Cart</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <div className="flex items-center gap-4">
-                <LanguageSwitcher />
-                <UserProfileDropdown />
+            ) : (
+              <div className="p-2">
+                {results.map((result) => (
+                  <Link
+                    key={result.id}
+                    href={`/product/${result.id}`}
+                    className="block p-2 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-200 rounded flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{result.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">{result.description}</p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-            </motion.div>
-          </>
-        )}
-
-        {isAdminPage && (
-          <div className="flex items-center gap-4">
-            <Badge variant="secondary">Admin Panel</Badge>
-            <UserProfileDropdown />
+            )}
           </div>
         )}
+
+        <div className="flex items-center gap-2 md:gap-4">
+          {mounted && <LanguageSwitcher />}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+          >
+            <Search className="h-5 w-5" />
+            <span className="sr-only">Search</span>
+              </Button>
+          <UserProfileDropdown />
+          <Link href="/cart">
+            <Button variant="outline" size="icon" className="relative">
+              <ShoppingCart className="h-5 w-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+              <span className="sr-only">{t("cart")}</span>
+            </Button>
+          </Link>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[80vw] sm:w-[350px]">
+              <div className="flex flex-col gap-6 mt-6">
+                <div className="relative w-full">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder={t("search_placeholder")}
+                    className="w-full pl-8"
+                    value={query}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`text-sm font-medium transition-colors hover:text-primary ${
+                      isActive(item.href) ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
-    </motion.header>
+    </header>
   )
 }

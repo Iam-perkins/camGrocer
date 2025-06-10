@@ -5,8 +5,9 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ShoppingBag, Loader2 } from "lucide-react"
+import { ShoppingBag, Loader2, CheckCircle2 } from "lucide-react"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,30 +15,114 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { StoreVerificationFlow } from "@/components/store-verification-flow"
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { toast } = useToast()
   const searchParams = useSearchParams()
-  const defaultType = searchParams.get("type") || "customer"
+  const defaultType = searchParams?.get("type") || "customer"
   const [accountType, setAccountType] = useState(defaultType)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [showVerification, setShowVerification] = useState(false)
 
-  // Customer form state
+  // Customer form state and validation
   const [customerForm, setCustomerForm] = useState({
     name: "",
     email: "",
     password: "",
     phone: "",
     address: "",
-    city: "",
-    region: "",
-  })
+    city: "Buea",
+    region: "Southwest Region",
+  });
+  
+  const [validation, setValidation] = useState({
+    email: { error: "", loading: false, valid: false },
+    phone: { error: "", loading: false, valid: false },
+  });
+  
+  // Debounce function to limit API calls
+  const debounce = (func: Function, delay: number) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  };
+  
+  // Check if email or phone already exists
+  const checkAvailability = async (field: 'email' | 'phone', value: string) => {
+    if (!value) return;
+    
+    try {
+      setValidation(prev => ({
+        ...prev,
+        [field]: { ...prev[field], loading: true, error: "", valid: false }
+      }));
+      
+      const response = await fetch('/api/auth/check-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+      });
+      
+      const data = await response.json();
+      
+      if (data[field]?.exists) {
+        setValidation(prev => ({
+          ...prev,
+          [field]: { 
+            ...prev[field], 
+            error: data[field].message,
+            loading: false,
+            valid: false
+          }
+        }));
+      } else {
+        setValidation(prev => ({
+          ...prev,
+          [field]: { 
+            ...prev[field], 
+            error: "", 
+            loading: false, 
+            valid: true 
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      setValidation(prev => ({
+        ...prev,
+        [field]: { 
+          ...prev[field], 
+          error: 'Error checking availability',
+          loading: false 
+        }
+      }));
+    }
+  };
+  
+  // Debounced version of checkAvailability
+  const debouncedCheckEmail = debounce((value: string) => checkAvailability('email', value), 500);
+  const debouncedCheckPhone = debounce((value: string) => checkAvailability('phone', value), 500);
+  
+  // Handle customer input changes with validation
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setCustomerForm(prev => ({ ...prev, [id]: value }));
+    
+    // Check email availability when email changes
+    if (id === 'email' && value) {
+      debouncedCheckEmail(value);
+    }
+    
+    // Check phone availability when phone changes
+    if (id === 'phone' && value) {
+      debouncedCheckPhone(value);
+    }
+  };
 
   // Store form state
   const [storeForm, setStoreForm] = useState({
@@ -45,20 +130,28 @@ export default function RegisterPage() {
     email: "",
     password: "",
     phone: "",
-    location: "",
+    location: "Buea, Southwest Region, Cameroon",
     storeType: "general",
     description: "",
   })
 
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
-    setCustomerForm((prev) => ({ ...prev, [id]: value }))
-  }
 
+
+  // Handle store form changes with validation
   const handleStoreChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { id, value } = e.target
-    setStoreForm((prev) => ({ ...prev, [id]: value }))
-  }
+    const { id, value } = e.target;
+    setStoreForm(prev => ({ ...prev, [id]: value }));
+    
+    // Check email availability when email changes
+    if (id === 'email' && value) {
+      debouncedCheckEmail(value);
+    }
+    
+    // Check phone availability when phone changes
+    if (id === 'phone' && value) {
+      debouncedCheckPhone(value);
+    }
+  };
 
   const handleStoreTypeChange = (value: string) => {
     setStoreForm((prev) => ({ ...prev, storeType: value }))
@@ -72,14 +165,22 @@ export default function RegisterPage() {
   const handleStoreInitialSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Ensure location includes Buea, Cameroon
+    if (!storeForm.location.toLowerCase().includes('buea')) {
+      toast.warning("Invalid Location", {
+        description: "Store location must be in Buea, Cameroon.",
+        duration: 5000,
+      });
+      return;
+    }
+
     // Validate store form
     if (!storeForm.storeName || !storeForm.email || !storeForm.password || !storeForm.phone || !storeForm.location) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      })
-      return
+      toast.warning("Missing Information", {
+        description: "Please fill in all required fields to continue.",
+        duration: 5000,
+      });
+      return;
     }
 
     // Show verification flow
@@ -87,57 +188,78 @@ export default function RegisterPage() {
   }
 
   const handleVerificationComplete = (storeData: any) => {
-    // Save store data to localStorage (simulating database)
-    const storeUserData = {
-      ...storeForm,
-      ...storeData,
-      id: `store_${Date.now()}`,
-      type: "store",
-      createdAt: new Date().toISOString(),
-      isVerified: false,
-      verificationStatus: "pending",
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(storeForm.storeName)}&background=27AE60&color=fff`,
-    }
+    // Show success message
+    toast.success("Verification Submitted", {
+      description: "Your store verification request has been submitted for review. You will receive an email once your account is approved.",
+      duration: 5000,
+    });
 
-    localStorage.setItem("currentUser", JSON.stringify(storeUserData))
-    localStorage.setItem(`user_${storeUserData.id}`, JSON.stringify(storeUserData))
-
-    toast({
-      title: "Verification submitted",
-      description: "Your store verification request has been submitted for review.",
-    })
-
-    // Redirect to verification pending page
-    router.push("/auth/verification-pending")
+    // Redirect to login page
+    router.push("/auth/login")
   }
 
-  const handleCustomerSubmit = (e: React.FormEvent) => {
+  const handleCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // Save customer data to localStorage (simulating database)
-      const userData = {
-        ...customerForm,
-        id: `user_${Date.now()}`,
-        type: "customer",
-        createdAt: new Date().toISOString(),
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(customerForm.name)}&background=0D8ABC&color=fff`,
-      }
+    // Ensure address includes Buea, Cameroon
+    const fullAddress = `${customerForm.address}, Buea, Southwest Region, Cameroon`;
 
-      localStorage.setItem("currentUser", JSON.stringify(userData))
-      localStorage.setItem(`user_${userData.id}`, JSON.stringify(userData))
-
-      toast({
-        title: "Account created successfully",
-        description: "Welcome to CamGrocer! You are now logged in.",
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'customer',
+          ...customerForm,
+          address: fullAddress,
+          city: 'Buea',
+          region: 'Southwest Region',
+          country: 'Cameroon'
+        }),
       })
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed')
+      }
+
+      const data = await response.json()
+
+      toast.success("Account Created", {
+        description: "Your account has been created successfully. Please log in to continue.",
+        duration: 5000,
+      });
+
       setIsSubmitting(false)
-      router.push("/")
-    }, 1500)
+      router.push("/auth/login")
+    } catch (error) {
+      toast.error("Registration Failed", {
+        description: error instanceof Error ? error.message : "An error occurred during registration. Please try again.",
+        duration: 5000,
+      });
+      setIsSubmitting(false)
+    }
   }
+
+  // Check if we should disable the next/submit button
+  const isCustomerFormValid = () => {
+    if (currentStep === 1) {
+      return (
+        !customerForm.name || 
+        !customerForm.email || 
+        !customerForm.password || 
+        !customerForm.phone ||
+        validation.email.loading ||
+        validation.phone.loading ||
+        !!validation.email.error ||
+        !!validation.phone.error
+      );
+    }
+    return !customerForm.address;
+  };
 
   return (
     <div className="container flex min-h-screen w-screen flex-col items-center justify-center py-10">
@@ -197,14 +319,28 @@ export default function RegisterPage() {
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={customerForm.email}
-                            onChange={handleCustomerChange}
-                            required
-                          />
+                          <div className="relative">
+                            <Input
+                              id="email"
+                              type="email"
+                              placeholder="you@example.com"
+                              value={customerForm.email}
+                              onChange={handleCustomerChange}
+                              className={validation.email.error ? 'border-red-500' : ''}
+                              required
+                            />
+                            <div className="absolute right-3 top-3 flex items-center">
+                              {validation.email.loading && (
+                                <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                              )}
+                              {validation.email.valid && !validation.email.error && !validation.email.loading && (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              )}
+                            </div>
+                            {validation.email.error && (
+                              <p className="mt-1 text-sm text-red-500">{validation.email.error}</p>
+                            )}
+                          </div>
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="password">Password</Label>
@@ -218,17 +354,31 @@ export default function RegisterPage() {
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="phone">Phone Number</Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            placeholder="+237 6XX XXX XXX"
-                            value={customerForm.phone}
-                            onChange={handleCustomerChange}
-                            required
-                          />
+                          <div className="relative">
+                            <Input
+                              id="phone"
+                              type="tel"
+                              placeholder="+237 6XX XXX XXX"
+                              value={customerForm.phone}
+                              onChange={handleCustomerChange}
+                              className={validation.phone.error ? 'border-red-500' : ''}
+                              required
+                            />
+                            <div className="absolute right-3 top-3 flex items-center">
+                              {validation.phone.loading && (
+                                <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                              )}
+                              {validation.phone.valid && !validation.phone.error && !validation.phone.loading && (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              )}
+                            </div>
+                            {validation.phone.error && (
+                              <p className="mt-1 text-sm text-red-500">{validation.phone.error}</p>
+                            )}
+                          </div>
                         </div>
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+                          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isCustomerFormValid()}>
                             Next: Delivery Information
                           </Button>
                         </motion.div>
@@ -236,10 +386,10 @@ export default function RegisterPage() {
                     ) : (
                       <form onSubmit={handleCustomerSubmit} className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="address">Delivery Address</Label>
+                          <Label htmlFor="address">Delivery Address in Buea</Label>
                           <Input
                             id="address"
-                            placeholder="123 Main Street"
+                            placeholder="e.g., 123 Molyko Street"
                             value={customerForm.address}
                             onChange={handleCustomerChange}
                             required
@@ -249,22 +399,23 @@ export default function RegisterPage() {
                           <Label htmlFor="city">City</Label>
                           <Input
                             id="city"
-                            placeholder="Yaoundé"
-                            value={customerForm.city}
-                            onChange={handleCustomerChange}
-                            required
+                            value="Buea"
+                            disabled
+                            className="bg-gray-100"
                           />
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="region">Region</Label>
                           <Input
                             id="region"
-                            placeholder="Centre Region"
-                            value={customerForm.region}
-                            onChange={handleCustomerChange}
-                            required
+                            value="Southwest Region"
+                            disabled
+                            className="bg-gray-100"
                           />
                         </div>
+                        <p className="text-sm text-gray-500">
+                          We currently only serve Buea, Southwest Region, Cameroon
+                        </p>
                         <div className="flex gap-2">
                           <Button type="button" variant="outline" onClick={() => setCurrentStep(1)} className="flex-1">
                             Back
@@ -273,7 +424,7 @@ export default function RegisterPage() {
                             <Button
                               type="submit"
                               className="w-full bg-green-600 hover:bg-green-700"
-                              disabled={isSubmitting}
+                              disabled={isSubmitting || isCustomerFormValid()}
                             >
                               {isSubmitting ? (
                                 <>
@@ -305,14 +456,28 @@ export default function RegisterPage() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="store@example.com"
-                          value={storeForm.email}
-                          onChange={handleStoreChange}
-                          required
-                        />
+                        <div className="relative">
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="contact@yourstore.com"
+                            value={storeForm.email}
+                            onChange={handleStoreChange}
+                            className={validation.email.error ? 'border-red-500' : ''}
+                            required
+                          />
+                          <div className="absolute right-3 top-3 flex items-center">
+                            {validation.email.loading && (
+                              <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                            )}
+                            {validation.email.valid && !validation.email.error && !validation.email.loading && (
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            )}
+                          </div>
+                          {validation.email.error && (
+                            <p className="mt-1 text-sm text-red-500">{validation.email.error}</p>
+                          )}
+                        </div>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="password">Password</Label>
@@ -326,24 +491,41 @@ export default function RegisterPage() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="+237 6XX XXX XXX"
-                          value={storeForm.phone}
-                          onChange={handleStoreChange}
-                          required
-                        />
+                        <div className="relative">
+                          <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="+237 6XX XXX XXX"
+                            value={storeForm.phone}
+                            onChange={handleStoreChange}
+                            className={validation.phone.error ? 'border-red-500' : ''}
+                            required
+                          />
+                          <div className="absolute right-3 top-3 flex items-center">
+                            {validation.phone.loading && (
+                              <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                            )}
+                            {validation.phone.valid && !validation.phone.error && !validation.phone.loading && (
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            )}
+                          </div>
+                          {validation.phone.error && (
+                            <p className="mt-1 text-sm text-red-500">{validation.phone.error}</p>
+                          )}
+                        </div>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="location">Store Location</Label>
+                        <Label htmlFor="location">Store Location in Buea</Label>
                         <Input
                           id="location"
-                          placeholder="Yaoundé, Cameroon"
+                          placeholder="e.g., 123 Molyko Street, Buea"
                           value={storeForm.location}
                           onChange={handleStoreChange}
                           required
                         />
+                        <p className="text-sm text-gray-500">
+                          Your store must be located in Buea, Southwest Region, Cameroon
+                        </p>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="description">Store Description</Label>

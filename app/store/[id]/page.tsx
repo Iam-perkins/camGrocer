@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useParams } from "next/navigation"
 import { Search, ShoppingBag, ShoppingCart, Star, Heart, CheckCircle2 } from "lucide-react"
 
@@ -17,6 +16,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { InfoIcon } from "lucide-react"
 import { getStoreImage } from "@/lib/product-data"
+// Add import for ImageWithFallback
+import { ImageWithFallback } from "@/components/image-with-fallback"
 
 export default function StorePage() {
   const params = useParams()
@@ -379,7 +380,14 @@ export default function StorePage() {
       </header>
       <main className="flex-1">
         <div className="relative h-[300px] w-full">
-          <Image src={store.image || "/placeholder.svg"} alt={store.name} fill className="object-cover" priority />
+          <ImageWithFallback
+            src={store.image || "/placeholder.svg"}
+            alt={store.name}
+            fill
+            className="object-cover"
+            priority
+            fallbackSrc="/placeholder.svg?height=300&width=1200&text=Store+Image"
+          />
           <div className="absolute inset-0 bg-black/40 flex items-end">
             <div className="container p-6 text-white">
               <div className="flex justify-between items-start">
@@ -474,12 +482,13 @@ export default function StorePage() {
                   <Card key={product.id} className="overflow-hidden">
                     <CardHeader className="p-0">
                       <Link href={`/product/${product.id}`}>
-                        <Image
+                        <ImageWithFallback
                           src={product.image || getProductById(product.id).image || "/placeholder.svg"}
                           alt={product.name}
                           width={200}
                           height={200}
                           className="w-full h-48 object-cover"
+                          fallbackSrc={`/placeholder.svg?height=200&width=200&text=${encodeURIComponent(product.name)}`}
                         />
                       </Link>
                     </CardHeader>

@@ -36,9 +36,9 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Information */}
           <motion.div variants={item} className="space-y-4">
-            <h3 className="text-lg font-bold">BueaGrocer</h3>
+            <h3 className="text-lg font-bold">camGrocer</h3>
             <p className="text-sm text-muted-foreground">
-              Your trusted platform for fresh, local groceries in Buea. Supporting local farmers and vendors while
+              Your trusted platform for fresh, local groceries in Buea . Supporting local farmers and vendors while
               bringing quality products to your doorstep.
             </p>
             <div className="flex space-x-4">

@@ -230,31 +230,13 @@ export function UserProfileDropdown() {
                 </>
               ) : (
                 <>
-                  <Link href="/dashboard" onClick={() => setIsOpen(false)}>
+                  <Link href="/admin/dashboard" onClick={() => setIsOpen(false)}>
                     <motion.div
                       whileHover={{ backgroundColor: "rgba(0,0,0,0.05)" }}
                       className="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
                     >
                       <Store className="h-4 w-4 text-muted-foreground" />
                       <span>Store Dashboard</span>
-                    </motion.div>
-                  </Link>
-                  <Link href="/dashboard/products" onClick={() => setIsOpen(false)}>
-                    <motion.div
-                      whileHover={{ backgroundColor: "rgba(0,0,0,0.05)" }}
-                      className="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
-                    >
-                      <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                      <span>My Products</span>
-                    </motion.div>
-                  </Link>
-                  <Link href="/dashboard/orders" onClick={() => setIsOpen(false)}>
-                    <motion.div
-                      whileHover={{ backgroundColor: "rgba(0,0,0,0.05)" }}
-                      className="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
-                    >
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                      <span>Orders</span>
                     </motion.div>
                   </Link>
                 </>

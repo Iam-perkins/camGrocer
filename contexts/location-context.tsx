@@ -18,28 +18,39 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
   const [selectedCity, setSelectedCity] = useState<City | null>(null)
   const [citiesInSelectedRegion, setCitiesInSelectedRegion] = useState<City[]>([])
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // Load saved location from localStorage on mount
   useEffect(() => {
-    const savedCityId = localStorage.getItem("selectedCityId")
+    try {
+      const savedCityId = localStorage.getItem("selectedCityId")
 
-    if (savedCityId) {
-      const cityId = Number.parseInt(savedCityId)
-      const city = getCityById(cityId)
+      if (savedCityId) {
+        const cityId = Number.parseInt(savedCityId)
+        const city = getCityById(cityId)
 
-      if (city) {
-        // Find the region this city belongs to
-        const region = regions.find((r) => r.cities.some((c) => c.id === cityId))
+        if (city) {
+          // Find the region this city belongs to
+          const region = regions.find((r) => r.cities.some((c) => c.id === cityId))
 
-        if (region) {
-          setSelectedRegion(region)
-          setSelectedCity(city)
+          if (region) {
+            setSelectedRegion(region)
+            setSelectedCity(city)
+          }
         }
+      } else {
+        // Default to first region and city if nothing is saved
+        setSelectedRegion(regions[0])
+        setSelectedCity(regions[0].cities[0])
       }
-    } else {
-      // Default to first region and city if nothing is saved
+
+      setIsInitialized(true)
+    } catch (error) {
+      console.error("Error initializing location context:", error)
+      // Set defaults in case of error
       setSelectedRegion(regions[0])
       setSelectedCity(regions[0].cities[0])
+      setIsInitialized(true)
     }
   }, [])
 
@@ -59,7 +70,11 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   // Save selected city to localStorage
   useEffect(() => {
     if (selectedCity) {
-      localStorage.setItem("selectedCityId", selectedCity.id.toString())
+      try {
+        localStorage.setItem("selectedCityId", selectedCity.id.toString())
+      } catch (error) {
+        console.error("Error saving to localStorage:", error)
+      }
     }
   }, [selectedCity])
 

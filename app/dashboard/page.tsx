@@ -28,7 +28,7 @@ export default function DashboardPage() {
       category: "Fruits",
       price: 1500,
       stock: 50,
-      image: getProductById(1).image,
+      image: "/images/products/plantains.jpg",
       description: "Fresh plantains from Western Cameroon",
     },
     {
@@ -37,7 +37,7 @@ export default function DashboardPage() {
       category: "Grains",
       price: 2000,
       stock: 100,
-      image: getProductById(2).image,
+      image: "/images/products/red-beans.jpg",
       description: "High quality red beans from Northern Cameroon",
     },
     {
@@ -46,7 +46,7 @@ export default function DashboardPage() {
       category: "Vegetables",
       price: 1200,
       stock: 30,
-      image: getProductById(3).image,
+      image: "/images/products/cassava.jpg",
       description: "Fresh cassava roots from Central Cameroon",
     },
     {
@@ -55,7 +55,7 @@ export default function DashboardPage() {
       category: "Spices",
       price: 3500,
       stock: 25,
-      image: getProductById(4).image,
+      image: "/images/products/egusi.jpg",
       description: "Premium quality egusi seeds for soups and stews",
     },
   ])

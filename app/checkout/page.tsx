@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { GoogleMap } from "@/components/google-map"
+import { MapLocationPicker } from "@/components/map-location-picker"
 import { useLanguage } from "@/contexts/language-context"
 
 export default function CheckoutPage() {
@@ -69,36 +69,6 @@ export default function CheckoutPage() {
       ...prev,
       [id]: value,
     }))
-  }
-
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setLocationError(null)
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          }
-          setCurrentLocation(newLocation)
-          setUseCurrentLocation(true)
-        },
-        (error) => {
-          setLocationError(
-            language === "en"
-              ? "Unable to retrieve your location. Please enter your address manually."
-              : "Impossible de récupérer votre position. Veuillez saisir votre adresse manuellement.",
-          )
-          setUseCurrentLocation(false)
-        },
-      )
-    } else {
-      setLocationError(
-        language === "en"
-          ? "Geolocation is not supported by your browser. Please enter your address manually."
-          : "La géolocalisation n'est pas prise en charge par votre navigateur. Veuillez saisir votre adresse manuellement.",
-      )
-    }
   }
 
   const handleLocationChange = (location: { lat: number; lng: number }) => {
@@ -246,40 +216,11 @@ export default function CheckoutPage() {
                         <Navigation className="h-5 w-5 text-green-600" />
                         <h3 className="font-medium">{t("deliveryLocation")}</h3>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={getCurrentLocation}
-                        className="text-green-600"
-                      >
-                        {t("useMyLocation")}
-                      </Button>
                     </div>
 
-                    {locationError && (
-                      <Alert variant="destructive" className="mb-4">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>{language === "en" ? "Error" : "Erreur"}</AlertTitle>
-                        <AlertDescription>{locationError}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    {/* Google Maps Component */}
+                    {/* Map Location Picker Component */}
                     <div className="mb-4">
-                      <GoogleMap
-                        initialLocation={currentLocation || undefined}
-                        onLocationChange={handleLocationChange}
-                        height="300px"
-                      />
-
-                      {currentLocation && (
-                        <div className="mt-2 bg-green-50 border border-green-200 rounded-md p-2 text-sm text-green-700 flex items-center gap-2">
-                          <Check className="h-4 w-4" />
-                          {language === "en" ? "Location selected" : "Emplacement sélectionné"}:{" "}
-                          {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
-                        </div>
-                      )}
+                      <MapLocationPicker onLocationChange={handleLocationChange} height="300px" language={language} />
                     </div>
 
                     <div className="space-y-2">

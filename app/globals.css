@@ -90,5 +90,60 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Custom container styles */
+.container {
+  @apply mx-auto px-4 sm:px-6 lg:px-8;
+  max-width: 1280px;
+  width: 100%;
+}
+
+/* Ensure proper width constraints */
+.max-w-7xl {
+  max-width: 1280px;
+}
+
+/* Responsive padding */
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .px-4 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .px-4 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Ensure proper flex behavior */
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+/* Ensure proper grid behavior */
+.grid {
+  display: grid;
+}
+
+/* Ensure proper spacing */
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+
+/* Ensure proper text wrapping */
+.text-balance {
+  text-wrap: balance;
 }
