@@ -38,6 +38,45 @@ export default function CheckoutPage() {
   const [useCurrentLocation, setUseCurrentLocation] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
+  // Define order item type
+  type OrderItem = {
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    image?: string;
+    storeId: string;
+    storeName: string;
+  };
+
+  // Define order data type
+  type OrderData = {
+    items: OrderItem[];
+    subtotal: number;
+    shippingFee: number;
+    total: number;
+    paymentMethod: string;
+    userId: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    shippingAddress: {
+      street: string;
+      city: string;
+      state: string;
+      country: string;
+      postalCode: string;
+      coordinates: {
+        lat: number;
+        lng: number;
+      };
+    };
+    status: string;
+    deliveryInstructions: string;
+    storeIds: string[];
+  };
+
+  const [orderResult, setOrderResult] = useState<{orderId: string; orderNumber: string} | null>(null)
   const [addressDetails, setAddressDetails] = useState({
     firstName: "",
     lastName: "",
@@ -74,42 +113,141 @@ export default function CheckoutPage() {
   const handleLocationChange = (location: { lat: number; lng: number }) => {
     setCurrentLocation(location)
     setUseCurrentLocation(true)
+    // Clear any previous location error when user selects a location
+    if (location) {
+      setLocationError(null)
+    }
   }
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = cartItems.length > 0 ? 1000 : 0
   const total = subtotal + deliveryFee
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    // In a real app, you would process the payment and create the order here
-    // For now, we'll just simulate a successful order
+    try {
+      // Validate location
+      if (!currentLocation) {
+        setLocationError(
+          language === 'en'
+            ? 'Please select a delivery location on the map or from the dropdown.'
+            : 'Veuillez sélectionner un lieu de livraison sur la carte ou dans le menu déroulant.'
+        );
+        // Scroll to location section
+        document.getElementById('location-section')?.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
 
-    // Store order details in localStorage for demonstration
-    const orderDetails = {
-      items: cartItems,
-      subtotal,
-      deliveryFee,
-      total,
-      paymentMethod,
-      deliveryAddress: {
-        ...addressDetails,
-        useCurrentLocation,
-        currentLocation,
-      },
-      orderDate: new Date().toISOString(),
-      orderId: `ORD-${Math.floor(Math.random() * 10000)}`,
-      status: "pending",
+      // Prepare order data with location
+      const orderData = {
+        items: cartItems.map(item => ({
+          productId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          storeId: item.storeId,
+          storeName: item.storeName
+        })),
+        subtotal,
+        shippingFee: deliveryFee,
+        total,
+        paymentMethod: paymentMethod || 'cash', // Default to cash if not specified
+        // Customer information
+        userId: `guest_${Math.random().toString(36).substr(2, 9)}`,
+        customerName: `${addressDetails.firstName || ''} ${addressDetails.lastName || ''}`.trim() || 'Guest Customer',
+        customerEmail: 'guest@example.com',
+        customerPhone: addressDetails.phone || '000000000',
+        // Shipping information
+        shippingAddress: {
+          street: addressDetails.address || 'Not specified',
+          city: 'Buea',
+          state: 'Southwest',
+          country: 'Cameroon',
+          postalCode: '0000',
+          coordinates: currentLocation ? {
+            lat: currentLocation.lat,
+            lng: currentLocation.lng
+          } : undefined
+        },
+        status: 'pending',
+        paymentStatus: 'pending',
+        deliveryInstructions: addressDetails.instructions || '',
+        // Extract unique store IDs from items
+        storeIds: [...new Set(cartItems.map(item => item.storeId))],
+        // Add timestamps
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Log the order data being sent
+      console.log('Submitting order with data:', JSON.stringify(orderData, null, 2));
+
+      // Send order to API
+      let orderResponse;
+      try {
+        orderResponse = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        const responseData = await orderResponse.json().catch(() => ({}));
+        console.log('Order API response:', {
+          status: orderResponse.status,
+          statusText: orderResponse.statusText,
+          data: responseData
+        });
+
+        if (!orderResponse.ok) {
+          let errorMessage = `Failed to create order (${orderResponse.status} ${orderResponse.statusText})`;
+          if (responseData.error) {
+            errorMessage = responseData.error;
+            if (responseData.details) {
+              errorMessage += `: ${JSON.stringify(responseData.details)}`;
+            }
+          } else if (orderResponse.status === 400) {
+            errorMessage = 'Invalid order data. Please check your information and try again.';
+            if (responseData.message) {
+              errorMessage += ` ${responseData.message}`;
+            }
+          } else if (orderResponse.status === 500) {
+            errorMessage = 'Server error. Please try again later.';
+            if (responseData.message) {
+              errorMessage += ` ${responseData.message}`;
+            }
+          }
+          throw new Error(errorMessage);
+        }
+
+        return responseData;
+      } catch (error) {
+        console.error('Error creating order:', error);
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error('An unexpected error occurred while creating the order');
+      }
+
+      const result = await orderResponse.json()
+      setOrderResult({
+        orderId: result.orderId,
+        orderNumber: result.orderNumber
+      })
+
+      // Clear cart after successful order
+      localStorage.removeItem("cartItems")
+      localStorage.removeItem("currentStore")
+      
+      // Show success dialog with order details
+      setShowSuccessDialog(true)
+    } catch (error) {
+      console.error('Error creating order:', error)
+      alert('Failed to create order. Please try again.')
     }
-
-    localStorage.setItem("lastOrder", JSON.stringify(orderDetails))
-
-    // Clear cart after successful order
-    localStorage.removeItem("cartItems")
-    localStorage.removeItem("currentStore")
-
-    setShowSuccessDialog(true)
   }
 
   const simulateDeliveryPayment = () => {
@@ -210,17 +348,24 @@ export default function CheckoutPage() {
                     />
                   </div>
 
-                  <div className="border rounded-lg p-4 bg-muted/30">
+                  <div id="location-section" className="border rounded-lg p-4 bg-muted/30">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <Navigation className="h-5 w-5 text-green-600" />
-                        <h3 className="font-medium">{t("deliveryLocation")}</h3>
+                        <h3 className="font-medium">{t("deliveryLocation")} <span className="text-red-500">*</span></h3>
                       </div>
                     </div>
 
                     {/* Map Location Picker Component */}
                     <div className="mb-4">
-                      <MapLocationPicker onLocationChange={handleLocationChange} height="300px" language={language} />
+                      <MapLocationPicker 
+                        onLocationChange={handleLocationChange} 
+                        height="300px" 
+                        language={language} 
+                      />
+                      {locationError && (
+                        <p className="mt-2 text-sm text-red-600">{locationError}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -239,11 +384,31 @@ export default function CheckoutPage() {
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       <div className="space-y-2">
                         <Label htmlFor="city">{t("city")}</Label>
-                        <Input id="city" value={addressDetails.city} onChange={handleInputChange} required />
+                        <Input 
+                          id="city" 
+                          value="Buea" 
+                          readOnly 
+                          className="bg-gray-100"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {language === 'en' 
+                            ? 'Currently only delivering within Buea' 
+                            : 'Livraison actuellement uniquement à Buea'}
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="region">{t("region")}</Label>
-                        <Input id="region" value={addressDetails.region} onChange={handleInputChange} required />
+                        <Input 
+                          id="region" 
+                          value="Southwest" 
+                          readOnly 
+                          className="bg-gray-100"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {language === 'en' 
+                            ? 'Buea is in the Southwest region' 
+                            : 'Buea se trouve dans la région du Sud-Ouest'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -493,43 +658,38 @@ export default function CheckoutPage() {
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="bg-green-100 p-2 rounded-full">
-                <Check className="h-6 w-6 text-green-600" />
-              </div>
-              {t("orderSuccess")}
-            </DialogTitle>
-            <DialogDescription>{t("orderConfirmation")}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4">
-              <div className="font-medium">{t("orderDetails")}</div>
-              <div className="text-sm text-muted-foreground mt-2">
-                <div>
-                  {t("orderId")}: #ORD-{Math.floor(Math.random() * 10000)}
-                </div>
-                <div>
-                  {t("totalAmount")}: {total} FCFA
-                </div>
-                <div>
-                  {language === "en" ? "Payment Method: " : "Méthode de paiement: "}
-                  {paymentMethod === "cash"
-                    ? language === "en"
-                      ? "Cash on Delivery"
-                      : "Paiement à la livraison"
-                    : language === "en"
-                      ? "Mobile Money"
-                      : "Mobile Money"}
-                </div>
-                <div>
-                  {t("estimatedDelivery")}: {language === "en" ? "Within 2-3 hours" : "Dans 2-3 heures"}
-                </div>
-              </div>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <Check className="h-6 w-6 text-green-600" />
             </div>
+            <DialogTitle className="text-center">Order Placed Successfully!</DialogTitle>
+            <DialogDescription className="text-center">
+              Your order has been placed successfully. We'll notify you when it's on its way.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-muted-foreground text-center">
+              Order Number: {orderResult?.orderNumber}
+            </p>
+            <p className="text-sm text-muted-foreground text-center">
+              Total: FCFA {total.toLocaleString()}
+            </p>
+            <p className="text-sm text-muted-foreground text-center">
+              Payment Method: {paymentMethod === 'mobile-money' ? 'Mobile Money' : 'Cash on Delivery'}
+            </p>
           </div>
-          <DialogFooter>
-            <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => router.push("/")}>
-              {t("backToHome")}
+          <DialogFooter className="flex flex-col gap-2">
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700" 
+              onClick={() => router.push(`/orders/${orderResult?.orderId}`)}
+            >
+              View Order Details
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => router.push('/')}
+            >
+              Continue Shopping
             </Button>
           </DialogFooter>
         </DialogContent>
