@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { ArrowRight, CheckCircle2, Heart, Star, MapPin, Phone, Mail, ShoppingBag, Truck, Clock, Award } from "lucide-react"
+import { ArrowRight, CheckCircle2, Heart, Star, MapPin, Phone, Mail, ShoppingBag, Truck, Clock, Award, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toaster"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { AnimatedGradient } from "@/components/ui/animated-gradient"
@@ -19,19 +19,115 @@ import { ParallaxSection } from "@/components/ui/parallax-section"
 import { FloatingElement } from "@/components/ui/floating-element"
 import { useLocation } from "@/contexts/location-context"
 import { Button } from "@/components/ui/button"
-
-// Import the product data utilities
 import { getStoreImage, generateProductsFromStore, categoryImages } from "@/lib/product-data"
-
-// Add import for ImageWithFallback
 import { ImageWithFallback } from "@/components/image-with-fallback"
 
-// Increase the total products constant
-const totalProducts = 50 // Total number of products in the system
+interface Vendor {
+  id: string;
+  name: string;
+  rating: number;
+  followers: number;
+  location: string;
+  image: string | null;
+  isVerified: boolean;
+  productsCount: number;
+  joinedAt: string;
+}
 
-// Hero background image - Buea/Mount Cameroon market scene
-const heroBackgroundImage =
-  "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=2670&auto=format&fit=crop"
+const totalProducts = 50;
+const heroBackgroundImage = "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=2670&auto=format&fit=crop"
+
+// Static vendor data - moved outside component to avoid initialization issues
+const staticVendors = [
+  {
+    id: '1',
+    name: "Mama Ngozi's Fresh Produce",
+    rating: 4.8,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: true,
+    productsCount: 45,
+    joinedAt: new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString()
+  },
+  {
+    id: '2',
+    name: "Uncle Benson's Farm",
+    rating: 4.7,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: true,
+    productsCount: 42,
+    joinedAt: new Date(Date.now() - (60 * 24 * 60 * 60 * 1000)).toISOString()
+  },
+  {
+    id: '3',
+    name: "Sister Marie's Market",
+    rating: 4.6,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: true,
+    productsCount: 39,
+    joinedAt: new Date(Date.now() - (90 * 24 * 60 * 60 * 1000)).toISOString()
+  },
+  {
+    id: '4',
+    name: "Papa John's Vegetables",
+    rating: 4.5,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: false,
+    productsCount: 36,
+    joinedAt: new Date(Date.now() - (120 * 24 * 60 * 60 * 1000)).toISOString()
+  },
+  {
+    id: '5',
+    name: "Auntie Grace's Store",
+    rating: 4.4,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: false,
+    productsCount: 33,
+    joinedAt: new Date(Date.now() - (150 * 24 * 60 * 60 * 1000)).toISOString()
+  },
+  {
+    id: '6',
+    name: "Brother Paul's Corner",
+    rating: 4.3,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: false,
+    productsCount: 30,
+    joinedAt: new Date(Date.now() - (180 * 24 * 60 * 60 * 1000)).toISOString()
+  },
+  {
+    id: '7',
+    name: "Mama Comfort's Garden",
+    rating: 4.2,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: false,
+    productsCount: 27,
+    joinedAt: new Date(Date.now() - (210 * 24 * 60 * 60 * 1000)).toISOString()
+  },
+  {
+    id: '8',
+    name: "Chief Ako's Market",
+    rating: 4.1,
+    followers: 0,
+    location: 'Buea', // Will be updated in component
+    image: null,
+    isVerified: false,
+    productsCount: 24,
+    joinedAt: new Date(Date.now() - (240 * 24 * 60 * 60 * 1000)).toISOString()
+  }
+];
 
 export default function Home() {
   const { toast } = useToast()
@@ -41,10 +137,86 @@ export default function Home() {
   const [storeFollowers, setStoreFollowers] = useState<Record<number, number>>({})
   const [searchQuery, setSearchQuery] = useState("")
   const [isLocationReady, setIsLocationReady] = useState(false)
+  
+  // State for top vendors
+  const [topVendors, setTopVendors] = useState<Vendor[]>([])
+  const [isLoadingVendors, setIsLoadingVendors] = useState(true)
 
   // Safely access location context
   const locationData = useLocation()
   const { selectedCity, selectedRegion } = locationData
+
+  // Update static vendors with current location
+  const vendorsWithLocation = useMemo(() => {
+    return staticVendors.map(vendor => ({
+      ...vendor,
+      location: selectedCity?.name || 'Buea'
+    }));
+  }, [selectedCity]);
+
+  // Fetch top vendors from API
+  useEffect(() => {
+    const fetchTopVendors = async () => {
+      try {
+        setIsLoadingVendors(true);
+        console.log('Fetching vendors from API...');
+        const response = await fetch('/api/vendors');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('API Response:', data);
+          // Only update if we get vendors from the API
+          if (data.length > 0) {
+            console.log(`Setting ${data.length} vendors from API`);
+            setTopVendors(data);
+          } else {
+            console.log('No vendors returned from API');
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to fetch top vendors:', response.status, errorText);
+        }
+      } catch (error) {
+        console.error('Error fetching top vendors:', error);
+      } finally {
+        setIsLoadingVendors(false);
+      }
+    };
+    
+    fetchTopVendors();
+  }, []);
+
+  // Combine static and API vendors
+  // Static vendors show first, then API vendors (if any) after scrolling
+  const displayVendors = useMemo(() => {
+    console.log('Combining vendors - static:', vendorsWithLocation.length, 'API:', topVendors.length);
+    // If we have API vendors, append them after static vendors
+    if (topVendors.length > 0) {
+      // Filter out any duplicates by ID
+      const staticVendorIds = new Set(vendorsWithLocation.map(v => v.id));
+      const uniqueApiVendors = topVendors.filter(v => !staticVendorIds.has(v.id));
+      const combined = [...vendorsWithLocation, ...uniqueApiVendors];
+      console.log('Combined vendors:', combined.length, 'total');
+      return combined;
+    }
+    // Otherwise just show static vendors with updated location
+    console.log('Using only static vendors:', vendorsWithLocation.length);
+    return vendorsWithLocation;
+  }, [topVendors, vendorsWithLocation]);
+
+  // Sort vendors by followers (descending) and then by name (ascending)
+  const sortedVendors = useMemo(() => {
+    if (!displayVendors || !Array.isArray(displayVendors)) {
+      return [];
+    }
+    return [...displayVendors].sort((a, b) => {
+      if (b.followers !== a.followers) {
+        return b.followers - a.followers;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [displayVendors]);
+
+
 
   useEffect(() => {
     if (!isLocationReady && selectedCity && selectedRegion) {
@@ -67,23 +239,42 @@ export default function Home() {
       setCurrentStore(savedStore)
     }
 
+    // Initialize followed stores
+    let initialFollowedStores: number[] = [];
     if (savedFollowedStores) {
-      setFollowedStores(JSON.parse(savedFollowedStores))
-    } else {
-      localStorage.setItem("followedStores", JSON.stringify([]))
-    }
-
-    if (savedStoreFollowers) {
-      setStoreFollowers(JSON.parse(savedStoreFollowers))
-    } else {
-      // Initialize with empty follower counts
-      const initialFollowers: Record<number, number> = {}
-      for (let i = 1; i <= 8; i++) {
-        initialFollowers[i] = 0
+      try {
+        initialFollowedStores = JSON.parse(savedFollowedStores);
+      } catch (e) {
+        console.error('Error parsing followed stores:', e);
       }
-      localStorage.setItem("storeFollowers", JSON.stringify(initialFollowers))
-      setStoreFollowers(initialFollowers)
+    } else {
+      localStorage.setItem("followedStores", JSON.stringify([]));
     }
+    setFollowedStores(initialFollowedStores);
+
+    // Initialize store followers
+    let initialStoreFollowers: Record<number, number> = {};
+    if (savedStoreFollowers) {
+      try {
+        initialStoreFollowers = JSON.parse(savedStoreFollowers);
+      } catch (e) {
+        console.error('Error parsing store followers:', e);
+      }
+    } else {
+      // Initialize all follower counts to 0
+      initialStoreFollowers = {
+        1: 0, // Mama Ngozi's Fresh Produce
+        2: 0, // Uncle Benson's Farm
+        3: 0, // Sister Marie's Market
+        4: 0, // Papa John's Vegetables
+        5: 0, // Auntie Grace's Store
+        6: 0, // Brother Paul's Corner
+        7: 0, // Mama Comfort's Garden
+        8: 0  // Chief Ako's Market
+      };
+      localStorage.setItem("storeFollowers", JSON.stringify(initialStoreFollowers));
+    }
+    setStoreFollowers(initialStoreFollowers);
   }, [])
 
   // Create sorted store IDs based on follower count
@@ -271,7 +462,7 @@ export default function Home() {
         </div>
         <SiteFooter />
       </div>
-    )
+    );
   }
 
   return (
@@ -403,7 +594,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Top Buea Vendors Section */}
+        {/* Top Vendors Section */}
         <section className="w-full py-8 md:py-12 lg:py-16 bg-gradient-to-b from-white to-green-50">
           <div className="container mx-auto px-4">
             <ScrollReveal>
@@ -413,45 +604,46 @@ export default function Home() {
                     🏆 Top Rated Vendors
                   </Badge>
                   <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
-                    Trusted Buea Vendors
+                    Trusted {selectedCity?.name || 'Local'} Vendors
                   </h2>
                   <p className="text-gray-600 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-                    Meet our most popular local vendors in {selectedCity.name}, specializing in fresh plantains, cassava, groundnuts,
+                    Meet our most popular local vendors in {selectedCity?.name || 'your area'}, specializing in fresh plantains, cassava, groundnuts,
                     and traditional Cameroonian ingredients from Mount Cameroon region.
                   </p>
                 </div>
               </div>
             </ScrollReveal>
 
+          {isLoadingVendors ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="flex flex-col items-center space-y-4">
+                <Loader2 className="h-12 w-12 text-green-500 animate-spin" />
+                <p className="text-gray-600">Loading top vendors...</p>
+              </div>
+            </div>
+          ) : (
             <div className="relative">
               <div className="flex overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 gap-4 md:gap-6">
-                {sortedStoreIds.map((storeId, index) => {
-                  const isFollowing = followedStores.includes(storeId)
-                  const followerCount = storeFollowers[storeId] || 0
-                  const isVerified = followerCount >= 200
-                  const storeImage = getStoreImage(storeId)
-                  const neighborhood = selectedCity.neighborhoods[storeId % selectedCity.neighborhoods.length]
-
-                  // Cameroon-specific vendor names
-                  const vendorNames = [
-                    "Mama Ngozi's Fresh Produce", "Uncle Benson's Farm", "Sister Marie's Market",
-                    "Papa John's Vegetables", "Auntie Grace's Store", "Brother Paul's Corner",
-                    "Mama Comfort's Garden", "Chief Ako's Market"
-                  ]
+                {displayVendors.map((vendor, index) => {
+                  const isFollowing = followedStores.includes(parseInt(vendor.id) || 0);
+                  const followerCount = storeFollowers[parseInt(vendor.id) || 0] || vendor.followers || 0;
+                  const storeImage = vendor.image || getStoreImage(parseInt(vendor.id) || 1);
+                  const neighborhood = selectedCity?.neighborhoods?.[(parseInt(vendor.id) || 0) % (selectedCity?.neighborhoods?.length || 8)] || 'Downtown';
+                  const cityName = vendor.location || selectedCity?.name || 'Buea';
 
                   return (
-                    <div key={storeId} className="snap-start shrink-0 w-[280px] sm:w-[320px] md:w-[380px]">
+                    <div key={vendor.id} className="snap-start shrink-0 w-[280px] sm:w-[320px] md:w-[380px]">
                       <AnimatedCard delay={index * 0.1} className="overflow-hidden transition-all h-full bg-white shadow-lg hover:shadow-2xl border-0 rounded-2xl">
                         <CardHeader className="p-0 relative">
-                          <Link href={`/store/${storeId}`}>
+                          <Link href={`/store/${vendor.id}`}>
                             <div className="relative overflow-hidden rounded-t-2xl">
                               <ImageWithFallback
-                                src={storeImage || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=2574&auto=format&fit=crop"}
-                                alt={vendorNames[storeId - 1]}
+                                src={storeImage}
+                                alt={vendor.name}
                                 width={400}
                                 height={240}
                                 className="w-full object-cover h-40 sm:h-48 transition-transform duration-500 hover:scale-110"
-                                fallbackSrc={`/placeholder.svg?height=240&width=400&text=${encodeURIComponent(vendorNames[storeId - 1])}`}
+                                fallbackSrc={`/placeholder.svg?height=240&width=400&text=${encodeURIComponent(vendor.name)}`}
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
 
@@ -462,11 +654,11 @@ export default function Home() {
                                   transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
                                   className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg"
                                 >
-                                  🥇 #{index + 1} Vendor
+                                  🥇 Top {index + 1}
                                 </motion.div>
                               )}
 
-                              {isVerified && (
+                              {vendor.isVerified && (
                                 <div className="absolute top-4 right-4 bg-blue-500 p-2 rounded-full shadow-lg">
                                   <CheckCircle2 className="h-4 w-4 text-white fill-current" />
                                 </div>
@@ -478,12 +670,12 @@ export default function Home() {
                         <CardContent className="p-4 md:p-6">
                           <div className="flex justify-between items-start gap-4">
                             <div className="flex-1 min-w-0">
-                              <Link href={`/store/${storeId}`}>
+                              <Link href={`/store/${vendor.id}`}>
                                 <CardTitle className="text-lg md:text-xl font-bold text-gray-900 hover:text-green-600 transition-colors line-clamp-1">
-                                  {vendorNames[storeId - 1]}
+                                  {vendor.name}
                                 </CardTitle>
                               </Link>
-                              <p className="text-sm text-gray-500 mt-1 truncate">{neighborhood}, {selectedCity.name}</p>
+                              <p className="text-sm text-gray-500 mt-1 truncate">{neighborhood}, {cityName}</p>
                             </div>
 
                             <TooltipProvider>
@@ -495,46 +687,63 @@ export default function Home() {
                                     className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-gray-50 hover:bg-red-50 transition-colors"
                                     onClick={(e) => {
                                       e.preventDefault()
-                                      handleFollowStore(storeId)
+                                      handleFollowStore(parseInt(vendor.id) || 0)
                                     }}
                                   >
                                     <Heart
-                                      className={`h-5 w-5 ${isFollowing ? "text-red-500 fill-current" : "text-gray-400"}`}
+                                      className={`h-5 w-5 ${isFollowing ? 'text-red-500 fill-current' : 'text-gray-400'}`}
                                     />
                                   </motion.button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{isFollowing ? "Unfollow" : "Follow"} this vendor</p>
+                                  <p>{isFollowing ? 'Unfollow store' : 'Follow store'}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </div>
+
+                          <div className="mt-4 flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="flex items-center">
+                                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                                <span className="ml-1 text-sm font-medium text-gray-900">
+                                  {vendor.rating.toFixed(1)}
+                                </span>
+                                <span className="mx-1 text-gray-300">•</span>
+                                <span className="text-sm text-gray-500">{followerCount} followers</span>
+                              </div>
+                            </div>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {vendor.productsCount} products
+                            </span>
+                          </div>
                         </CardContent>
                       </AnimatedCard>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
-          </div>
-        </section>
+          )}
+        </div>
+      </section>
 
-        {/* Browse by Category Section */}
-        <ParallaxSection className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-br from-green-50 via-yellow-50 to-red-50">
-          <div className="container px-4 md:px-6">
-            <ScrollReveal>
-              <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
-                <Badge className="bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2">
-                  🛒 Shop by Category
-                </Badge>
-                <div className="space-y-4">
-                  <h2 className="text-4xl font-bold tracking-tight md:text-5xl text-gray-900">
-                    Traditional Cameroonian Ingredients
-                  </h2>
-                  <p className="max-w-[900px] text-gray-600 md:text-xl leading-relaxed">
-                    Explore our selection of authentic {selectedRegion.name} region groceries at local Buea market prices.
-                    Perfect for preparing Ndolé, Eru, Achu, and other traditional dishes.
-                  </p>
+      {/* Browse by Category Section */}
+      <ParallaxSection className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-br from-green-50 via-yellow-50 to-red-50">
+        <div className="container px-4 md:px-6">
+          <ScrollReveal>
+            <div className="flex flex-col items-center justify-center space-y-6 text-center mb-12">
+              <Badge className="bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2">
+                🛒 Shop by Category
+              </Badge>
+              <div className="space-y-4">
+                <h2 className="text-4xl font-bold tracking-tight md:text-5xl text-gray-900">
+                  Traditional Cameroonian Ingredients
+                </h2>
+                <p className="max-w-[900px] text-gray-600 md:text-xl leading-relaxed">
+                  Explore our selection of authentic {selectedRegion.name} region groceries at local Buea market prices.
+                  Perfect for preparing Ndolé, Eru, Achu, and other traditional dishes.
+                </p>
                 </div>
               </div>
             </ScrollReveal>

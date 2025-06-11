@@ -98,9 +98,84 @@ export const sendRejectionEmail = async (email: string, storeName: string, reaso
       <p>We regret to inform you that your store <strong>${storeName}</strong> application has been reviewed and we're unable to approve it at this time.</p>
       ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
       <p>If you believe this is a mistake or would like more information, please contact our support team.</p>
-      <p>Best regards,<br/>The CamGrocer Team</p>
-    </div>
-  `;
+      <p>Best regards,<br/>The CamGrocer Team</p>`;
+
+  return sendEmail({ to: email, subject, html });
+};
+
+export const sendStatusChangeEmail = async (email: string, name: string, status: string, reason?: string) => {
+  const statusTitles: { [key: string]: string } = {
+    'suspended': 'Account Suspension Notice',
+    'banned': 'Account Banned',
+    'active': 'Account Reinstated'
+  };
+
+  const statusMessages: { [key: string]: string } = {
+    'suspended': 'Your account has been suspended.',
+    'banned': 'Your account has been banned.',
+    'active': 'Your account has been reactivated.'
+  };
+
+  const subject = `🚨 ${statusTitles[status] || 'Account Status Update'}`;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+      <h1 style="color: ${status === 'active' ? '#27AE60' : '#E74C3C'};">${statusTitles[status] || 'Account Status Update'}</h1>
+      <p>Dear ${name || 'User'},</p>
+      <p>${statusMessages[status] || 'Your account status has been updated.'}</p>
+      
+      ${reason ? `<div style="background-color: #F8F9FA; padding: 15px; border-left: 4px solid #E74C3C; margin: 15px 0;">
+        <p style="margin: 0;"><strong>Reason:</strong> ${reason}</p>
+      </div>` : ''}
+
+      <p>${status === 'active' 
+        ? 'You can now log in to your account and continue using our services.' 
+        : 'You will not be able to access your account until further notice.'}
+      </p>
+
+      ${status !== 'active' ? `
+      <p>If you believe this is a mistake or would like to appeal this decision, please contact our support team.</p>
+      ` : ''}
+
+      <p style="margin-top: 30px; font-size: 0.9em; color: #7F8C8D;">
+        This is an automated message. Please do not reply to this email.
+      </p>
+      
+      <p style="margin-top: 20px;">
+        Best regards,<br/>
+        <strong>The CamGrocer Team</strong>
+      </p>
+    </div>`;
+
+  return sendEmail({ to: email, subject, html });
+};
+
+export const sendAccountDeletionEmail = async (email: string, name: string, reason?: string) => {
+  const subject = '🚨 Your Account Has Been Deleted';
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+      <h1 style="color: #E74C3C;">Account Deletion Notice</h1>
+      <p>Dear ${name || 'User'},</p>
+      <p>We regret to inform you that your CamGrocer account has been permanently deleted.</p>
+      
+      ${reason ? `<div style="background-color: #F8F9FA; padding: 15px; border-left: 4px solid #E74C3C; margin: 15px 0;">
+        <p style="margin: 0;"><strong>Reason:</strong> ${reason}</p>
+      </div>` : ''}
+
+      <p>All your data has been permanently removed from our systems in accordance with our data retention policy.</p>
+      
+      <p>If you believe this was done in error or have any questions, please contact our support team immediately.</p>
+
+      <p style="margin-top: 30px; font-size: 0.9em; color: #7F8C8D;">
+        This is an automated message. Please do not reply to this email.
+      </p>
+      
+      <p style="margin-top: 20px;">
+        Best regards,<br/>
+        <strong>The CamGrocer Team</strong>
+      </p>
+    </div>`;
 
   return sendEmail({ to: email, subject, html });
 };

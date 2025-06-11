@@ -1,0 +1,447 @@
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
+import Link from "next/link"
+import { ArrowRight, CheckCircle2, Heart, Star, MapPin, Phone, Mail, ShoppingBag, Truck, Clock, Award, Loader2 } from "lucide-react"
+import { motion } from "framer-motion"
+import { Badge } from "@/components/ui/badge"
+import { CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
+import { AnimatedGradient } from "@/components/ui/animated-gradient"
+import { AnimatedCard } from "@/components/ui/animated-card"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { AnimatedButton } from "@/components/ui/animated-button"
+import { ParallaxSection } from "@/components/ui/parallax-section"
+import { FloatingElement } from "@/components/ui/floating-element"
+import { useLocation } from "@/contexts/location-context"
+import { Button } from "@/components/ui/button"
+import { getStoreImage, generateProductsFromStore, categoryImages } from "@/lib/product-data"
+import { ImageWithFallback } from "@/components/image-with-fallback"
+
+interface Vendor {
+  id: string;
+  name: string;
+  rating: number;
+  followers: number;
+  location: string;
+  image: string | null;
+  isVerified: boolean;
+  productsCount: number;
+  joinedAt: string;
+}
+
+const totalProducts = 50;
+const heroBackgroundImage = "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=2670&auto=format&fit=crop";
+
+export default function Home() {
+  const { toast } = useToast();
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [currentStore, setCurrentStore] = useState<string | null>(null);
+  const [followedStores, setFollowedStores] = useState<number[]>([]);
+  const [storeFollowers, setStoreFollowers] = useState<Record<number, number>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLocationReady, setIsLocationReady] = useState(false);
+  const [topVendors, setTopVendors] = useState<Vendor[]>([]);
+  const [isLoadingVendors, setIsLoadingVendors] = useState(true);
+
+  const locationData = useLocation();
+  const { selectedCity, selectedRegion } = locationData;
+
+  useEffect(() => {
+    const fetchTopVendors = async () => {
+      try {
+        setIsLoadingVendors(true);
+        const response = await fetch('/api/vendors/top');
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setTopVendors(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching top vendors:', error);
+      } finally {
+        setIsLoadingVendors(false);
+      }
+    };
+    
+    fetchTopVendors();
+  }, []);
+
+  const staticVendors = useMemo(() => (
+    Array.from({ length: 8 }, (_, i) => ({
+      id: String(i + 1),
+      name: [
+        "Mama Ngozi's Fresh Produce", 
+        "Uncle Benson's Farm", 
+        "Sister Marie's Market",
+        "Papa John's Vegetables", 
+        "Auntie Grace's Store", 
+        "Brother Paul's Corner",
+        "Mama Comfort's Garden", 
+        "Chief Ako's Market"
+      ][i],
+      rating: 4.5 - (i * 0.1),
+      followers: 150 + (i * 30),
+      location: selectedCity?.name || 'Buea',
+      image: null,
+      isVerified: i < 3,
+      productsCount: 15 + (i * 3),
+      joinedAt: new Date(Date.now() - (i * 30 * 24 * 60 * 60 * 1000)).toISOString()
+    }))
+  ), [selectedCity]);
+
+  const displayVendors = useMemo(() => {
+    const vendorsMap = new Map();
+    topVendors.forEach(vendor => vendorsMap.set(vendor.id, vendor));
+    staticVendors.forEach(vendor => {
+      if (!vendorsMap.has(vendor.id)) {
+        vendorsMap.set(vendor.id, vendor);
+      }
+    });
+    return Array.from(vendorsMap.values());
+  }, [topVendors, staticVendors]);
+
+  const handleFollowStore = (storeId: number) => {
+    const isFollowing = followedStores.includes(storeId);
+    const updatedFollowedStores = isFollowing
+      ? followedStores.filter(id => id !== storeId)
+      : [...followedStores, storeId];
+
+    const newFollowerCount = isFollowing 
+      ? (storeFollowers[storeId] || 1) - 1 
+      : (storeFollowers[storeId] || 0) + 1;
+
+    setFollowedStores(updatedFollowedStores);
+    localStorage.setItem("followedStores", JSON.stringify(updatedFollowedStores));
+
+    const updatedStoreFollowers = {
+      ...storeFollowers,
+      [storeId]: newFollowerCount,
+    };
+    setStoreFollowers(updatedStoreFollowers);
+    localStorage.setItem("storeFollowers", JSON.stringify(updatedStoreFollowers));
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.history.scrollRestoration = 'manual';
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
+  if (!isLocationReady || !selectedCity || !selectedRegion) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-green-50 to-white">
+        <SiteHeader cartItemCount={cartItems.length} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+        <div className="flex items-center justify-center flex-1">
+          <div className="text-center p-8 bg-white rounded-2xl shadow-lg border border-green-100">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
+            <p className="text-xl font-semibold text-gray-700">Loading location data...</p>
+            <p className="text-sm text-gray-500 mt-2">Connecting to local vendors...</p>
+          </div>
+        </div>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      <SiteHeader cartItemCount={cartItems.length} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+      <main className="flex-1">
+        {/* Hero section */}
+        <div
+          className="relative w-full py-8 md:py-12 lg:py-16 bg-cover bg-center"
+          style={{
+            backgroundImage: `linear-gradient(135deg, rgba(0, 100, 0, 0.8), rgba(34, 139, 34, 0.7)), url(${heroBackgroundImage})`,
+            backgroundAttachment: "fixed",
+          }}
+        >
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-20 left-10 w-16 h-16 bg-yellow-400/20 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute top-40 right-20 w-24 h-24 bg-red-400/20 rounded-full blur-xl animate-pulse delay-1000"></div>
+            <div className="absolute bottom-20 left-1/4 w-20 h-20 bg-green-400/20 rounded-full blur-xl animate-pulse delay-2000"></div>
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
+              <ScrollReveal className="flex flex-col justify-center space-y-6">
+                <div className="space-y-4">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <Badge className="bg-yellow-500 text-black hover:bg-yellow-400 mb-3 text-sm px-3 py-1.5 font-semibold">
+                      🇨🇲 Proudly Cameroonian • Buea Based
+                    </Badge>
+                  </motion.div>
+                  <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                    className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight"
+                  >
+                    Fresh Ingredients from
+                    <span className="text-yellow-400 block mt-2">{selectedCity.name}</span>
+                  </motion.h1>
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="text-green-100 text-base md:text-lg leading-relaxed max-w-xl"
+                  >
+                    Shop from trusted Buea vendors for plantains, cassava, groundnuts, palm oil, and traditional Cameroonian ingredients.
+                    Fresh from Mount Cameroon's fertile slopes to your doorstep in {selectedCity.name}.
+                  </motion.p>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-wrap gap-3 text-white"
+                >
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <Truck className="h-4 w-4 text-yellow-400" />
+                    <span className="text-sm">Fast Delivery</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <Award className="h-4 w-4 text-yellow-400" />
+                    <span className="text-sm">Best Quality</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <ShoppingBag className="h-4 w-4 text-yellow-400" />
+                    <span className="text-sm">Fresh Products</span>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-col sm:flex-row gap-4 pt-2"
+                >
+                  <Link href="/browse" className="w-full sm:w-auto">
+                    <AnimatedButton className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold px-8 py-4 rounded-full shadow-lg">
+                      Shop Now <ShoppingBag className="ml-2 h-5 w-5" />
+                    </AnimatedButton>
+                  </Link>
+                  <Link href="/about" className="w-full sm:w-auto">
+                    <AnimatedButton variant="outline" className="w-full bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-full border-white/20 backdrop-blur-sm">
+                      Learn More
+                    </AnimatedButton>
+                  </Link>
+                </motion.div>
+              </ScrollReveal>
+
+              <FloatingElement amplitude={15} duration={6} className="order-first lg:order-last">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                  className="relative"
+                >
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-auto rounded-2xl"
+                  >
+                    <source src="/intro.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                  <div className="absolute -top-4 -right-4 w-8 h-8 bg-yellow-400 rounded-full animate-bounce"></div>
+                  <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-red-500 rounded-full animate-bounce delay-500"></div>
+                </motion.div>
+              </FloatingElement>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Vendors Section */}
+        <section className="w-full py-8 md:py-12 lg:py-16 bg-gradient-to-b from-white to-green-50">
+          <div className="container mx-auto px-4">
+            <ScrollReveal>
+              <div className="flex flex-col items-center justify-center space-y-4 text-center mb-8">
+                <div className="space-y-4">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-200 px-3 py-1.5">
+                    🏆 Top Rated Vendors
+                  </Badge>
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
+                    Trusted {selectedCity?.name || 'Local'} Vendors
+                  </h2>
+                  <p className="text-gray-600 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
+                    Meet our most popular local vendors in {selectedCity?.name || 'your area'}, specializing in fresh plantains, cassava, groundnuts,
+                    and traditional Cameroonian ingredients from Mount Cameroon region.
+                  </p>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {isLoadingVendors ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="flex flex-col items-center space-y-4">
+                  <Loader2 className="h-12 w-12 text-green-500 animate-spin" />
+                  <p className="text-gray-600">Loading top vendors...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="flex overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 gap-4 md:gap-6">
+                  {displayVendors.map((vendor, index) => (
+                    <VendorCard 
+                      key={vendor.id}
+                      vendor={vendor}
+                      index={index}
+                      selectedCity={selectedCity}
+                      isFollowing={followedStores.includes(parseInt(vendor.id) || 0)}
+                      followerCount={storeFollowers[parseInt(vendor.id) || 0] || vendor.followers || 0}
+                      onFollow={handleFollowStore}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <SiteFooter />
+      <Toaster />
+    </div>
+  );
+}
+
+// Separate component for Vendor Card to improve readability
+function VendorCard({ vendor, index, selectedCity, isFollowing, followerCount, onFollow }: {
+  vendor: Vendor;
+  index: number;
+  selectedCity: any;
+  isFollowing: boolean;
+  followerCount: number;
+  onFollow: (storeId: number) => void;
+}) {
+  const storeImage = vendor.image || getStoreImage(parseInt(vendor.id) || 1);
+  const neighborhood = selectedCity?.neighborhoods?.[(parseInt(vendor.id) || 0) % (selectedCity?.neighborhoods?.length || 8)] || 'Downtown';
+  const cityName = vendor.location || selectedCity?.name || 'Buea';
+
+  return (
+    <div className="snap-start shrink-0 w-[280px] sm:w-[320px] md:w-[380px]">
+      <AnimatedCard delay={index * 0.1} className="overflow-hidden transition-all h-full bg-white shadow-lg hover:shadow-2xl border-0 rounded-2xl">
+        <CardHeader className="p-0 relative">
+          <Link href={`/store/${vendor.id}`}>
+            <div className="relative overflow-hidden rounded-t-2xl">
+              <ImageWithFallback
+                src={storeImage}
+                alt={vendor.name}
+                width={400}
+                height={240}
+                className="w-full object-cover h-40 sm:h-48 transition-transform duration-500 hover:scale-110"
+                fallbackSrc={`/placeholder.svg?height=240&width=400&text=${encodeURIComponent(vendor.name)}`}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+
+              {index < 3 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
+                  className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg"
+                >
+                  🥇 Top {index + 1}
+                </motion.div>
+              )}
+
+              {vendor.isVerified && (
+                <div className="absolute top-4 right-4 bg-blue-500 p-2 rounded-full shadow-lg">
+                  <CheckCircle2 className="h-4 w-4 text-white fill-current" />
+                </div>
+              )}
+            </div>
+          </Link>
+        </CardHeader>
+
+        <CardContent className="p-4 md:p-6">
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex-1 min-w-0">
+              <Link href={`/store/${vendor.id}`}>
+                <CardTitle className="text-lg md:text-xl font-bold text-gray-900 hover:text-green-600 transition-colors line-clamp-1">
+                  {vendor.name}
+                </CardTitle>
+              </Link>
+              <div className="flex items-center mt-1">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${i < Math.floor(vendor.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                    />
+                  ))}
+                  <span className="ml-1 text-sm text-gray-600">
+                    {vendor.rating.toFixed(1)}
+                  </span>
+                </div>
+                <span className="mx-2 text-gray-300">•</span>
+                <div className="flex items-center text-sm text-gray-600">
+                  <MapPin className="h-3.5 w-3.5 mr-1" />
+                  {neighborhood}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onFollow(parseInt(vendor.id) || 0);
+              }}
+              className={`flex-shrink-0 p-2 rounded-full transition-colors ${
+                isFollowing 
+                  ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              aria-label={isFollowing ? 'Unfollow store' : 'Follow store'}
+            >
+              <Heart className={`h-5 w-5 ${isFollowing ? 'fill-current' : ''}`} />
+            </button>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="text-sm font-medium text-gray-900">{vendor.productsCount}+</div>
+                <div className="text-xs text-gray-500">Products</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-900">{followerCount}</div>
+                <div className="text-xs text-gray-500">Followers</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-900">
+                  {new Date(vendor.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                </div>
+                <div className="text-xs text-gray-500">Member since</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="p-0">
+          <Link 
+            href={`/store/${vendor.id}`}
+            className="w-full py-3 text-center bg-green-50 hover:bg-green-100 text-green-700 font-medium transition-colors rounded-b-2xl"
+          >
+            Visit Store
+          </Link>
+        </CardFooter>
+      </AnimatedCard>
+    </div>
+  );
+}

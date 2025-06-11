@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       query.userId = session.user.id;
     } 
     // Store owners can see orders for their store
-    else if (session.user.role === 'store' && session.user.storeId) {
+    else if (session.user.role === 'store_owner' && session.user.storeId) {
       query.storeIds = session.user.storeId;
     }
     // Admin can see all orders or filter by user/store

@@ -72,20 +72,55 @@ export default function UsersTab() {
 
   // Handle updating user status
   const handleUpdateUserStatus = async (userId: string, status: 'active' | 'suspended' | 'banned') => {
-    if (!confirm(`Are you sure you want to ${status} this user?`)) return;
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+      console.error('User not found in local state:', userId);
+      toast({
+        title: 'Error',
+        description: 'User not found in local state',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const statusMessages = {
+      active: 'activate',
+      suspended: 'suspend',
+      banned: 'ban'
+    };
+    
+    const action = statusMessages[status];
     
     try {
       setIsProcessing(userId);
       
+      console.log(`Updating user ${userId} status to ${status}`);
+      
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ status })
       });
       
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        throw new Error('Invalid response from server');
+      }
+      
+      console.log('Update status response:', {
+        status: response.status,
+        statusText: response.statusText,
+        responseData
+      });
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update user status');
+        console.error('Update failed with status:', response.status, 'Response:', responseData);
+        throw new Error(responseData.error || `Failed to update user status (HTTP ${response.status})`);
       }
       
       // Update the local state to reflect the change
@@ -93,15 +128,34 @@ export default function UsersTab() {
         user.id === userId ? { ...user, status } : user
       ));
       
+      // Show success toast with user details
       toast({
-        title: 'Success',
-        description: `User has been ${status}`,
+        title: (
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-green-500" />
+            <span>User {status === 'active' ? 'Activated' : status === 'suspended' ? 'Suspended' : 'Banned'}</span>
+          </div>
+        ),
+        description: (
+          <div className="flex flex-col gap-1">
+            <p className="font-medium">{user.name || user.email.split('@')[0]}</p>
+            <p className="text-sm text-muted-foreground">
+              {status === 'active' 
+                ? 'The user account has been reactivated.' 
+                : `The user account has been ${status}. An email notification has been sent.`}
+            </p>
+          </div>
+        ),
+        duration: 5000,
+        className: 'border-l-4 border-green-500 bg-background',
       });
     } catch (error) {
       console.error('Error updating user status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update user status';
+      
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update user status',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -120,23 +174,41 @@ export default function UsersTab() {
         method: 'DELETE',
       });
       
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete user');
+        throw new Error(responseData.error || 'Failed to delete user');
       }
       
       // Remove the user from the local state
       setUsers(users.filter(user => user.id !== userToDelete.id));
       
+      // Show success toast with user details
       toast({
-        title: 'Success',
-        description: 'User has been deleted successfully',
+        title: (
+          <div className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5 text-red-500" />
+            <span>User Deleted</span>
+          </div>
+        ),
+        description: (
+          <div className="flex flex-col gap-1">
+            <p className="font-medium">{userToDelete.name || userToDelete.email.split('@')[0]}</p>
+            <p className="text-sm text-muted-foreground">
+              The user account has been permanently deleted. An email notification has been sent.
+            </p>
+          </div>
+        ),
+        duration: 5000,
+        className: 'border-l-4 border-red-500 bg-background',
       });
     } catch (error) {
       console.error('Error deleting user:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
+      
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to delete user',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -254,7 +326,7 @@ export default function UsersTab() {
                                 user.status === 'active'
                                   ? 'default'
                                   : user.status === 'suspended'
-                                  ? 'warning'
+                                  ? 'destructive'
                                   : 'destructive'
                               }
                             >
