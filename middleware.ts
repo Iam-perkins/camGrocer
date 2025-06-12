@@ -5,13 +5,36 @@ export function middleware(request: NextRequest) {
   // Get the pathname of the request
   const path = request.nextUrl.pathname;
 
-  // If it's an API route or auth route, let it pass through
-  if (path.startsWith('/api/') || path.startsWith('/_next/')) {
+  // If it's an API route, _next, or auth route, let it pass through
+  if (path.startsWith('/api/') || path.startsWith('/_next/') || path.startsWith('/auth/')) {
     return NextResponse.next();
   }
 
+  // Handle signout specifically
+  if (path === '/auth/logout') {
+    const response = NextResponse.redirect(new URL('/', request.url));
+    
+    // Clear all auth-related cookies
+    const cookieOptions = {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure: process.env.NODE_ENV === 'production',
+    };
+
+    response.cookies.set('authToken', '', { ...cookieOptions, expires: new Date(0) });
+    response.cookies.set('next-auth.session-token', '', { ...cookieOptions, expires: new Date(0) });
+    response.cookies.set('currentUser', '', { ...cookieOptions, expires: new Date(0) });
+    
+    // Clear the session in the response headers
+    response.headers.set('Clear-Site-Data', '"cookies", "storage"');
+    
+    return response;
+  }
+
   // Get the token and user from cookies
-  const token = request.cookies.get('authToken')?.value;
+  const token = request.cookies.get('authToken')?.value || 
+               request.cookies.get('next-auth.session-token')?.value;
   const userCookie = request.cookies.get('currentUser')?.value;
   
   // Parse user data if it exists
@@ -20,6 +43,10 @@ export function middleware(request: NextRequest) {
     userData = userCookie ? JSON.parse(userCookie) : null;
   } catch (e) {
     console.error('Error parsing user data:', e);
+    // Clear invalid cookie
+    const response = NextResponse.next();
+    response.cookies.set('currentUser', '', { path: '/', expires: new Date(0) });
+    return response;
   }
 
   // Handle auth routes
