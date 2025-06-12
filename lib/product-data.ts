@@ -57,15 +57,15 @@ export const productImages = {
   // Fruits and vegetables
   plantains: "/images/products/plantains.jpg",
   cassava: "/images/products/cassava.jpg",
-  redBeans: "/images/products/redbeans.jpg",
+  redBeans: "/images/products/redBeans.jpg",
   egusi: "/images/products/egusi.jpg",
-  palmOil: "/images/products/palmoil.jpg",
+  palmOil: "/images/products/palmOil.jpg",
   yams: "/images/products/yams.jpg",
   peanuts: "/images/products/peanuts.jpg",
-  bitterLeaf: "/images/products/bitterleaf.jpg",
+  bitterLeaf: "/images/products/bitterLeaf.jpg",
   palmWine: "/images/products/palmwine.jpg",
   cocoyams: "/images/products/cocoyams.jpg",
-  njangsa: "/images/products/njansa.jpg",
+  njangsa: "/images/products/njangsa.jpg",
   mbongoTchobi: "/images/products/mbongotchobi.jpg",
   achuSpices: "/images/products/achuSpices.jpg",
   kokiBeans: "/images/products/kokibeans.jpg",
@@ -77,14 +77,14 @@ export const productImages = {
   pepper: "/images/products/pepper.jpg",
   groundnutOil: "/images/products/goil.jpg",
   coconut: "/images/products/coconut.jpg",
-  sweetPotatoes: "/images/products/sweetpotatoes.jpg",
+  sweetPotatoes: "/images/products/sweetPotatoes.jpg",
   tomatoes: "/images/products/tomatoes.jpg",
   onions: "/images/products/onions.jpg",
-  driedFish: "/images/products/dryfish.jpg",
+  driedFish: "/images/products/driedFish.jpg",
   smokedFish: "/images/products/dryfish.jpg",
   beef: "/images/products/beef.jpg",
   chicken: "/images/products/chicken.jpg",
-  goatMeat: "/images/products/goatmeat.jpeg",
+  goatMeat: "/images/products/goatmeat.jpg",
   // Fallback to placeholder images
   default: "/images/placeholder-product.jpg"
 }
@@ -112,20 +112,12 @@ export const categoryImages = {
   nuts: "https://images.unsplash.com/photo-1567892737950-30c4db37cd89?q=80&w=2574&auto=format&fit=crop",
   grains: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=2574&auto=format&fit=crop",
   beverages: "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=2574&auto=format&fit=crop",
-  "meat & fish": "/images/products/meat.jpg",
-  suckers: "https://images.unsplash.com/photo-1541658017279-68dfb5f9b5e6?q=80&w=2670&auto=format&fit=crop",
+  "meat & fish": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?q=80&w=2574&auto=format&fit=crop",
   default: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=2670&auto=format&fit=crop",
 }
 
 // Define units and quantity descriptions for different product types with realistic quantities
 export const productUnits: Record<string, { unit: string; quantityDescription: string; singlePrice: number }> = {
-  // Suckers (plantains, etc.)
-  suckers: {
-    unit: 'bunch',
-    quantityDescription: 'per bunch (5-8 fingers)',
-    singlePrice: 1000, // Average price per bunch
-  },
-  // Existing categories...
   plantains: { unit: "bunch", quantityDescription: "1 bunch (approximately 5-7 plantains)", singlePrice: 100 },
   cassava: { unit: "kg", quantityDescription: "1 kg (approximately 2-3 roots)", singlePrice: 200 },
   redBeans: { unit: "cup", quantityDescription: "1 cup (approximately 250g)", singlePrice: 100 },
@@ -231,7 +223,6 @@ export const categories = [
   "Oils",
   "Tubers",
   "Nuts",
-  "Suckers",
   "Meat & Fish",
   "Beverages",
   "Soups",
@@ -363,33 +354,27 @@ export function getStoreImage(storeId: number): string {
  * @returns A valid image URL for the category
  */
 export function getCategoryImage(category: string): string {
-  if (!category) return categoryImages.default;
-  
-  const categoryKey = category.toLowerCase().trim().replace(/[^a-z0-9]+/g, '');
-  
-  // Special case for meat & fish
-  if (categoryKey.includes('meat') || categoryKey.includes('fish')) {
-    return categoryImages['meat & fish'];
+  if (!category) {
+    console.warn('No category provided, using default image');
+    return categoryImages.default;
   }
   
-  // Special case for suckers (plantains, etc.)
-  if (categoryKey === 'suckers') {
-    return categoryImages.suckers;
+  // Clean up the category name for matching
+  const cleanCategory = category.toLowerCase().trim();
+  
+  // Try exact match first
+  if (categoryImages[cleanCategory as keyof typeof categoryImages]) {
+    return categoryImages[cleanCategory as keyof typeof categoryImages];
   }
   
-  // Try direct match first
-  if (categoryKey in categoryImages) {
-    return categoryImages[categoryKey as keyof typeof categoryImages];
-  }
-  
-  // Try partial match
-  for (const [key, value] of Object.entries(categoryImages)) {
-    if (categoryKey.includes(key) || key.includes(categoryKey)) {
-      return value;
+  // Try partial matches
+  for (const [key, url] of Object.entries(categoryImages)) {
+    if (cleanCategory.includes(key) || key.includes(cleanCategory)) {
+      return url;
     }
   }
   
-  // Default fallback
+  // Fallback to default
   console.warn(`No matching image found for category: ${category}`);
   return categoryImages.default;
 }
@@ -416,7 +401,7 @@ export const fixedProducts: Product[] = [
   {
     id: 1,
     name: "Fresh Plantains",
-    category: "Suckers",
+    category: "Fruits",
     price: 500,
     description: "Fresh plantains from local farms",
     storeId: 1,
@@ -444,7 +429,7 @@ export const fixedProducts: Product[] = [
   {
     id: 3,
     name: "Cassava",
-    category: "Tubers",
+    category: "Vegetables",
     price: 200,
     description: "Fresh cassava roots from local farms",
     storeId: 1,

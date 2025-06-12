@@ -11,8 +11,6 @@ import { SessionProvider } from "@/components/SessionProvider"
 import { Preloader } from "@/components/preloader"
 import { auth } from '@/lib/auth-server-helper'
 import { Toaster } from "sonner"
-import { AuthProvider } from "@/contexts/auth-context"
-import { CartProvider } from "@/contexts/cart-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -48,30 +46,26 @@ export default async function RootLayout({
           <LanguageProvider>
             <LocationProvider>
               <SessionProvider session={session}>
-                <AuthProvider>
-                  <CartProvider>
-                    <SearchProvider>
-                      <div className="relative flex min-h-screen flex-col">
-                      <Preloader />
-                      <div className="flex-1">
-                        {children}
-                      </div>
-                      <Toaster 
-                        position="top-right"
-                        expand={true}
-                        richColors
-                        closeButton
-                        theme="light"
-                      />
+                <SearchProvider>
+                  <div className="relative flex min-h-screen flex-col">
+                  <Preloader />
+                    <div className="flex-1">
+                  {children}
                     </div>
-                  </SearchProvider>
-                </CartProvider>
-              </AuthProvider>
-            </SessionProvider>
-          </LocationProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </body>
-  </html>
+                    <Toaster 
+                      position="top-right"
+                      expand={true}
+                      richColors
+                      closeButton
+                      theme="light"
+                    />
+                  </div>
+                </SearchProvider>
+              </SessionProvider>
+            </LocationProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   )
 }

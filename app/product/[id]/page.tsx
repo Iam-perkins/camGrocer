@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { Heart, Minus, Plus, ShoppingBag, Star, MessageSquare, CheckCircle, Info } from "lucide-react"
+import { Heart, Minus, Plus, ShoppingBag, ShoppingCart, Star, MessageSquare, CheckCircle, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,9 +14,10 @@ import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import BiddingModal from "@/components/bidding-modal"
 import { getProductById } from "@/lib/product-data"
+import { addToCart } from "@/lib/cart-utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+// Add import for ImageWithFallback
 import { ImageWithFallback } from "@/components/image-with-fallback"
-import { useCart } from "@/contexts/cart-context"
 
 // Type for negotiated prices - now using sessionStorage instead of localStorage
 type NegotiatedPrice = {
@@ -32,7 +33,6 @@ export default function ProductPage() {
   const [isPremiumUser, setIsPremiumUser] = useState(false)
   const [negotiatedPrices, setNegotiatedPrices] = useState<NegotiatedPrice[]>([])
   const [isClient, setIsClient] = useState(false)
-  const { updateCartCount } = useCart()
 
   // Set client-side state after mount
   useEffect(() => {
@@ -123,92 +123,32 @@ export default function ProductPage() {
   }, [])
 
   const handleAddToCart = () => {
-    // Ensure we're on the client side
-    if (typeof window === 'undefined') return;
-
-    // If cart is empty, set the current store
-    if (cartItems.length === 0) {
-      const currentPrice = getCurrentPrice();
-      const newCartItem = {
-        ...product,
-        price: currentPrice,
-        originalPrice: product.price,
-        quantity: quantity,
-      };
-
-      setCurrentStore(product.store);
-      setCartItems([newCartItem]);
-
-      // Save to localStorage
-      try {
-        localStorage.setItem("cartItems", JSON.stringify([newCartItem]));
-        localStorage.setItem("currentStore", product.store);
-        updateCartCount(); // Update cart count
-      } catch (error) {
-        console.error("Error saving to localStorage:", error);
+    const currentPrice = getCurrentPrice();
+    const productWithPrice = { ...product, price: currentPrice };
+    
+    const result = addToCart(productWithPrice, quantity);
+    
+    if (result.success) {
+      // Update local state
+      const updatedCart = JSON.parse(localStorage.getItem('cartItems') || '[]');
+      setCartItems(updatedCart);
+      
+      // Update current store if this is the first item
+      if (updatedCart.length === 1) {
+        setCurrentStore(product.store);
       }
-
+      
       toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart.`,
+        title: result.message.includes('more') ? 'Updated cart' : 'Added to cart',
+        description: result.message,
       });
     } else {
-      // Check if product is from the same store
-      if (product.store === currentStore) {
-        const existingItemIndex = cartItems.findIndex((item) => item.id === product.id);
-        const currentPrice = getCurrentPrice();
-
-        if (existingItemIndex === -1) {
-          // Add to cart if not already in cart
-          const newItem = {
-            ...product,
-            price: currentPrice,
-            originalPrice: product.price,
-            quantity: quantity,
-          };
-
-          const updatedCart = [...cartItems, newItem];
-          setCartItems(updatedCart);
-
-          try {
-            localStorage.setItem("cartItems", JSON.stringify(updatedCart));
-            updateCartCount(); // Update cart count
-          } catch (error) {
-            console.error("Error saving to localStorage:", error);
-          }
-
-          toast({
-            title: "Added to cart",
-            description: `${product.name} has been added to your cart.`,
-          });
-        } else {
-          // Update quantity if already in cart
-          const updatedCart = [...cartItems];
-          updatedCart[existingItemIndex].quantity += quantity;
-          updatedCart[existingItemIndex].price = currentPrice; // Update price in case of negotiation
-
-          setCartItems(updatedCart);
-
-          try {
-            localStorage.setItem("cartItems", JSON.stringify(updatedCart));
-            updateCartCount(); // Update cart count
-          } catch (error) {
-            console.error("Error saving to localStorage:", error);
-          }
-
-          toast({
-            title: "Updated cart",
-            description: `Added ${quantity} more ${product.name} to your cart.`,
-          });
-        }
-      } else {
-        // Show error if product is from a different store
-        toast({
-          title: "Cannot add to cart",
-          description: `You can only add items from ${currentStore} to your current cart.`,
-          variant: "destructive",
-        });
-      }
+      // Show error message
+      toast({
+        title: 'Cannot add to cart',
+        description: result.message,
+        variant: 'destructive',
+      });
     }
   }
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { getCartCount } from "@/lib/cart-utils"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -39,19 +40,47 @@ export function UserProfileDropdown() {
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [userData, setUserData] = useState<UserData | null>(null)
+  const [mounted, setMounted] = useState(false)
+  const [cartItemCount, setCartItemCount] = useState(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    setMounted(true)
+    
     // Get user data from localStorage
-    const userDataString = localStorage.getItem("currentUser")
-    if (userDataString) {
+    const loadUserData = () => {
+      if (typeof window === 'undefined') return;
+      
       try {
-        const parsedUserData = JSON.parse(userDataString)
-        setUserData(parsedUserData)
+        const userDataString = localStorage.getItem("currentUser")
+        if (userDataString) {
+          const parsedUserData = JSON.parse(userDataString)
+          setUserData(parsedUserData)
+        }
       } catch (error) {
         console.error("Failed to parse user data:", error)
       }
     }
+
+    // Load cart count using the utility function
+    const loadCartCount = () => {
+      setCartItemCount(getCartCount())
+    }
+
+    // Initial load
+    loadUserData()
+    loadCartCount()
+
+    // Listen for storage events to sync across tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'currentUser') {
+        loadUserData()
+      } else if (e.key === 'cartItems') {
+        loadCartCount()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
 
     // Close dropdown when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -63,27 +92,47 @@ export function UserProfileDropdown() {
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
 
   const handleLogout = () => {
-    // Remove user data from localStorage
-    localStorage.removeItem("currentUser")
-
-    // Show toast notification
-    toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of your account.",
-    })
-
-    // Reset user data state
-    setUserData(null)
-
-    // Redirect to home page
-    router.push("/")
-
-    // Close dropdown
-    setIsOpen(false)
+    if (typeof window === 'undefined') return;
+    
+    try {
+      // Remove user data from localStorage
+      localStorage.removeItem("currentUser")
+      
+      // Clear cart items
+      localStorage.removeItem("cartItems")
+      localStorage.removeItem("currentStore")
+      
+      // Reset states
+      setUserData(null)
+      setCartItemCount(0)
+      
+      // Show toast notification
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      })
+      
+      // Redirect to home page
+      router.push("/")
+      
+      // Close dropdown
+      setIsOpen(false)
+      
+      // Force a refresh of the page to reset all states
+      window.dispatchEvent(new Event('storage'))
+    } catch (error) {
+      console.error("Error during logout:", error)
+      toast({
+        title: "Error",
+        description: "An error occurred during logout. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   if (!userData) {

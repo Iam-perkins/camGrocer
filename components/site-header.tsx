@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ShoppingBag, Search, Menu } from "lucide-react"
+import { ShoppingBag, ShoppingCart, Search, Menu, User, ImageIcon, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,8 +12,9 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useTranslation } from "@/lib/use-translation"
 import { useSearch } from "@/contexts/search-context"
-import { CartButton } from "@/components/cart-button"
-import { AuthButton } from "@/components/auth-button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { UserProfileDropdown } from "@/components/user-profile-dropdown"
+import { getCartCount } from "@/lib/cart-utils"
 
 interface SiteHeaderProps {
   cartItemCount?: number;
@@ -22,11 +23,12 @@ interface SiteHeaderProps {
 }
 
 // Default translations as fallback
-export function SiteHeader({ cartItemCount = 0 }: SiteHeaderProps) {
+export function SiteHeader({ cartItemCount: initialCartCount = 0 }: SiteHeaderProps) {
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [cartItemCount, setCartItemCount] = useState(initialCartCount)
   // Safe access to translation context
   const { t, language } = useTranslation()
   const { query, search, results, loading } = useSearch()
@@ -36,6 +38,22 @@ export function SiteHeader({ cartItemCount = 0 }: SiteHeaderProps) {
     // Check if user is admin - in a real app, this would come from your auth system
     // For demo purposes, we'll just set it to true
     setIsAdmin(true)
+
+    // Load initial cart count
+    setCartItemCount(getCartCount())
+
+    // Listen for storage events to sync across tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cartItems') {
+        setCartItemCount(getCartCount())
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [language])
 
   // Use t function directly for translations
@@ -165,8 +183,18 @@ export function SiteHeader({ cartItemCount = 0 }: SiteHeaderProps) {
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
               </Button>
-          <AuthButton />
-          <CartButton />
+          <UserProfileDropdown />
+          <Link href="/cart">
+            <Button variant="outline" size="icon" className="relative">
+              <ShoppingCart className="h-5 w-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+              <span className="sr-only">{t("cart")}</span>
+            </Button>
+          </Link>
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">
