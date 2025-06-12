@@ -107,12 +107,12 @@ export const categoryImages = {
   fruits: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?q=80&w=2574&auto=format&fit=crop",
   vegetables: "https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?q=80&w=2574&auto=format&fit=crop",
   spices: "https://images.unsplash.com/photo-1532336414038-cf19250c5757?q=80&w=2574&auto=format&fit=crop",
-  oils: "/images/products/oil.jpg",
+  oils: "/images/products/goil.jpg",
   tubers: "https://images.unsplash.com/photo-1598515214146-dab39da1243d?q=80&w=2574&auto=format&fit=crop",
   nuts: "https://images.unsplash.com/photo-1567892737950-30c4db37cd89?q=80&w=2574&auto=format&fit=crop",
   grains: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=2574&auto=format&fit=crop",
   beverages: "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=2574&auto=format&fit=crop",
-  "meat & fish": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?q=80&w=2574&auto=format&fit=crop",
+  "meat & fish": "/images/products/meat.jpg",
   default: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=2670&auto=format&fit=crop",
 }
 
