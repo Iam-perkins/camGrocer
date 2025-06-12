@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { Heart, Minus, Plus, ShoppingBag, ShoppingCart, Star, MessageSquare, CheckCircle, Info } from "lucide-react"
+import { Heart, Minus, Plus, ShoppingBag, ShoppingCart, Star, MessageSquare, CheckCircle, Info, MapPin, Store } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,8 +16,9 @@ import BiddingModal from "@/components/bidding-modal"
 import { getProductById } from "@/lib/product-data"
 import { addToCart } from "@/lib/cart-utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-// Add import for ImageWithFallback
 import { ImageWithFallback } from "@/components/image-with-fallback"
+import { WhatsAppChat } from "@/components/whatsapp-chat"
+import { NearbyStores } from "@/components/nearby-stores"
 
 // Type for negotiated prices - now using sessionStorage instead of localStorage
 type NegotiatedPrice = {
@@ -27,7 +28,21 @@ type NegotiatedPrice = {
 
 export default function ProductPage() {
   const params = useParams()
-  const productId = Number(params.id)
+  const productId = params?.id ? Number(params.id) : 0
+  
+  // Get the product with proper type assertion
+  const product = getProductById(productId) || {
+    id: 0,
+    name: 'Product not found',
+    price: 0,
+    store: 'Unknown Store',
+    storeId: 0,
+    rating: 0,
+    reviews: 0,
+    description: '',
+    image: '/placeholder.svg',
+    images: [],
+  }
   const [quantity, setQuantity] = useState(1)
   const [isBiddingModalOpen, setIsBiddingModalOpen] = useState(false)
   const [isPremiumUser, setIsPremiumUser] = useState(false)
@@ -53,9 +68,6 @@ export default function ProductPage() {
     setIsPremiumUser(isPremium)
   }, [])
 
-  // Get the product data based on the ID from the URL
-  const product = getProductById(productId)
-
   // Get negotiated price if available
   const getNegotiatedPrice = () => {
     const negotiated = negotiatedPrices.find((item) => item.productId === productId)
@@ -68,7 +80,24 @@ export default function ProductPage() {
     return negotiatedPrice !== null ? negotiatedPrice : product.price
   }
 
-  const [selectedImage, setSelectedImage] = useState(product.images ? product.images[0] : product.image)
+  // Initialize selectedImage with a fallback to ensure it's always a string
+  const [selectedImage, setSelectedImage] = useState<string>(() => {
+    if (product.images && product.images.length > 0) {
+      return product.images[0];
+    }
+    return product.image || '/placeholder.svg';
+  });
+  
+  // Update selectedImage when product changes
+  useEffect(() => {
+    if (product.images && product.images.length > 0) {
+      setSelectedImage(product.images[0]);
+    } else if (product.image) {
+      setSelectedImage(product.image);
+    } else {
+      setSelectedImage('/placeholder.svg');
+    }
+  }, [product]);
 
   const handleQuantityChange = (change: number) => {
     setQuantity(Math.max(1, quantity + change))
@@ -239,17 +268,17 @@ export default function ProductPage() {
           <div className="space-y-4">
             {/* Main Product Image */}
             <div className="relative aspect-square w-full bg-gray-50 rounded-xl overflow-hidden shadow-sm">
-              <ImageWithFallback
-                src={selectedImage || product.image}
-                alt={product.name}
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-contain p-4 hover:scale-105 transition-transform duration-300"
-                style={{ objectFit: 'contain' }}
-                fallbackSrc="/placeholder.svg?height=600&width=600&text=Product+Image"
-              />
-              {product.isNew && (
+                <ImageWithFallback
+                  src={selectedImage ?? product.image ?? '/placeholder.svg'}
+                  alt={product.name}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-contain p-4 hover:scale-105 transition-transform duration-300"
+                  style={{ objectFit: 'contain' }}
+                  fallbackSrc="/placeholder.svg?height=600&width=600&text=Product+Image"
+                />
+              {(product as any).isNew && (
                 <span className="absolute top-4 left-4 bg-green-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                   New
                 </span>
@@ -319,13 +348,13 @@ export default function ProductPage() {
                     ))}
                   </div>
                   <span className="ml-1.5 text-sm font-medium text-gray-900">
-                    {product.rating || 4.5}
+                    {typeof product.rating === 'number' ? product.rating : 4.5}
                   </span>
                 </div>
                 <span className="text-sm text-gray-500">
-                  ({product.reviews || 28} reviews)
+                  ({(product.reviews || 28)} reviews)
                 </span>
-                {product.reviews > 10 && (
+                {(product.reviews || 0) > 10 && (
                   <span className="text-sm text-blue-600 font-medium">
                     🏆 Best Seller
                   </span>
@@ -464,6 +493,36 @@ export default function ProductPage() {
                   <ShoppingCart className="mr-2 h-5 w-5" />
                   Add to Cart • {(getCurrentPrice() * quantity).toLocaleString()} FCFA
                 </Button>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">or</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  {/* WhatsApp Chat Button */}
+                  <WhatsAppChat 
+                    phoneNumber="237672991379" 
+                    productName={product.name}
+                    storeName={product.store || 'the store'}
+                  />
+                  
+                  {/* Buy from Nearby Store */}
+                  <NearbyStores 
+                    currentStoreId={product.storeId || 0}
+                    onSelectStore={(store) => {
+                      // Handle store selection
+                      toast({
+                        title: 'Store Selected',
+                        description: `You've selected ${store.name} as your preferred store.`,
+                      });
+                    }}
+                  />
+                </div>
                 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
