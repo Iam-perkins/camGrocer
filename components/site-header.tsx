@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ShoppingBag, ShoppingCart, Search, Menu, User, ImageIcon, ShieldCheck } from "lucide-react"
+import { ShoppingBag, Search, Menu } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,8 +12,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useTranslation } from "@/lib/use-translation"
 import { useSearch } from "@/contexts/search-context"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { UserProfileDropdown } from "@/components/user-profile-dropdown"
+import { CartButton } from "@/components/cart-button"
+import { AuthButton } from "@/components/auth-button"
 
 interface SiteHeaderProps {
   cartItemCount?: number;
@@ -165,18 +165,8 @@ export function SiteHeader({ cartItemCount = 0 }: SiteHeaderProps) {
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
               </Button>
-          <UserProfileDropdown />
-          <Link href="/cart">
-            <Button variant="outline" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItemCount}
-                </span>
-              )}
-              <span className="sr-only">{t("cart")}</span>
-            </Button>
-          </Link>
+          <AuthButton />
+          <CartButton />
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">

@@ -1,9 +1,31 @@
 import nodemailer from 'nodemailer';
 
 interface EmailOptions {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
+}
+
+interface OrderDetails {
+  orderNumber: string;
+  customerName: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    storeName: string;
+  }>;
+  subtotal: number;
+  shippingFee: number;
+  total: number;
+  shippingAddress: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+  };
+  paymentMethod: string;
+  orderDate: string;
 }
 
 // Create a test account (for development only)
@@ -148,6 +170,162 @@ export const sendStatusChangeEmail = async (email: string, name: string, status:
     </div>`;
 
   return sendEmail({ to: email, subject, html });
+};
+
+export const sendOrderConfirmationEmail = async (order: OrderDetails, customerEmail: string, storeOwnerEmails: string[]) => {
+  // Email to customer
+  const customerSubject = `Order Confirmation - #${order.orderNumber}`;
+  const customerHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Order Confirmation</h2>
+      <p>Hello ${order.customerName},</p>
+      <p>Thank you for your order! We've received it and it's being processed.</p>
+      
+      <h3>Order Details</h3>
+      <p><strong>Order Number:</strong> ${order.orderNumber}</p>
+      <p><strong>Order Date:</strong> ${new Date(order.orderDate).toLocaleDateString()}</p>
+      
+      <h4>Items Ordered</h4>
+      <ul>
+        ${order.items.map(item => `
+          <li>
+            ${item.quantity}x ${item.name} - ${item.price.toLocaleString()} FCFA
+            ${item.storeName ? `<br/><small>From: ${item.storeName}</small>` : ''}
+          </li>
+        `).join('')}
+      </ul>
+      
+      <h4>Order Summary</h4>
+      <p>Subtotal: ${order.subtotal.toLocaleString()} FCFA</p>
+      <p>Shipping Fee: ${order.shippingFee.toLocaleString()} FCFA</p>
+      <p><strong>Total: ${order.total.toLocaleString()} FCFA</strong></p>
+      
+      <h4>Shipping Address</h4>
+      <p>
+        ${order.shippingAddress.street}<br/>
+        ${order.shippingAddress.city}, ${order.shippingAddress.state}<br/>
+        ${order.shippingAddress.country}
+      </p>
+      
+      <h4>Payment Method</h4>
+      <p>${order.paymentMethod}</p>
+      
+      <p>We'll send you a notification once your order is on its way.</p>
+      
+      <p>Thank you for shopping with us!</p>
+      <p>Best regards,<br/>CamGrocer Team</p>
+    </div>
+  `;
+
+  // Email to store owners
+  const storeOwnerSubject = `New Order Received - #${order.orderNumber}`;
+  const storeOwnerHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>New Order Received</h2>
+      <p>You have received a new order from ${order.customerName}.</p>
+      
+      <h3>Order Details</h3>
+      <p><strong>Order Number:</strong> ${order.orderNumber}</p>
+      <p><strong>Order Date:</strong> ${new Date(order.orderDate).toLocaleDateString()}</p>
+      
+      <h4>Items Ordered</h4>
+      <ul>
+        ${order.items.map(item => `
+          <li>
+            ${item.quantity}x ${item.name} - ${item.price.toLocaleString()} FCFA
+          </li>
+        `).join('')}
+      </ul>
+      
+      <h4>Order Total</h4>
+      <p><strong>${order.total.toLocaleString()} FCFA</strong></p>
+      
+      <h4>Customer Information</h4>
+      <p>Name: ${order.customerName}</p>
+      <p>Email: ${customerEmail}</p>
+      
+      <h4>Shipping Address</h4>
+      <p>
+        ${order.shippingAddress.street}<br/>
+        ${order.shippingAddress.city}, ${order.shippingAddress.state}<br/>
+        ${order.shippingAddress.country}
+      </p>
+      
+      <p>Please prepare the items for delivery as soon as possible.</p>
+      
+      <p>Best regards,<br/>CamGrocer Team</p>
+    </div>
+  `;
+
+  // Email to admin
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@camgrocer.com';
+  const adminSubject = `New Order Placed - #${order.orderNumber}`;
+  const adminHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>New Order Placed</h2>
+      <p>A new order has been placed by ${order.customerName}.</p>
+      
+      <h3>Order Details</h3>
+      <p><strong>Order Number:</strong> ${order.orderNumber}</p>
+      <p><strong>Order Date:</strong> ${new Date(order.orderDate).toLocaleDateString()}</p>
+      
+      <h4>Items Ordered</h4>
+      <ul>
+        ${order.items.map(item => `
+          <li>
+            ${item.quantity}x ${item.name} - ${item.price.toLocaleString()} FCFA
+            ${item.storeName ? `<br/><small>Store: ${item.storeName}</small>` : ''}
+          </li>
+        `).join('')}
+      </ul>
+      
+      <h4>Order Total</h4>
+      <p><strong>${order.total.toLocaleString()} FCFA</strong></p>
+      
+      <h4>Customer Information</h4>
+      <p>Name: ${order.customerName}</p>
+      <p>Email: ${customerEmail}</p>
+      
+      <h4>Shipping Address</h4>
+      <p>
+        ${order.shippingAddress.street}<br/>
+        ${order.shippingAddress.city}, ${order.shippingAddress.state}<br/>
+        ${order.shippingAddress.country}
+      </p>
+      
+      <p>Best regards,<br/>CamGrocer System</p>
+    </div>
+  `;
+
+  try {
+    // Send email to customer
+    await sendEmail({
+      to: customerEmail,
+      subject: customerSubject,
+      html: customerHtml
+    });
+
+    // Send email to store owners
+    if (storeOwnerEmails.length > 0) {
+      await sendEmail({
+        to: storeOwnerEmails,
+        subject: storeOwnerSubject,
+        html: storeOwnerHtml
+      });
+    }
+
+    // Send email to admin
+    await sendEmail({
+      to: adminEmail,
+      subject: adminSubject,
+      html: adminHtml
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error sending order confirmation emails:', error);
+    return false;
+  }
 };
 
 export const sendAccountDeletionEmail = async (email: string, name: string, reason?: string) => {

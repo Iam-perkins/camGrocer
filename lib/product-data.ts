@@ -55,38 +55,38 @@ export const bueaNeighborhoods = [
 // Cameroonian product images
 export const productImages = {
   // Fruits and vegetables
-  plantains: "https://images.unsplash.com/photo-1603833665858-e61d17a86224?q=80&w=2127&auto=format&fit=crop",
-  cassava: "https://images.unsplash.com/photo-1598842403593-e4ecc4946f6a?q=80&w=2574&auto=format&fit=crop",
-  redBeans: "https://images.unsplash.com/photo-1515543904379-3d757afe72e4?q=80&w=2574&auto=format&fit=crop",
-  egusi: "https://images.unsplash.com/photo-1600692858924-b7a14f2c1c5a?q=80&w=2574&auto=format&fit=crop",
-  palmOil: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=2574&auto=format&fit=crop",
-  yams: "https://images.unsplash.com/photo-1598515214146-dab39da1243d?q=80&w=2574&auto=format&fit=crop",
-  peanuts: "https://images.unsplash.com/photo-1567892737950-30c4db37cd89?q=80&w=2574&auto=format&fit=crop",
-  bitterLeaf: "https://images.unsplash.com/photo-1515872474884-c6a1e5f724e3?q=80&w=2574&auto=format&fit=crop",
-  palmWine: "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=2574&auto=format&fit=crop",
-  cocoyams: "https://images.unsplash.com/photo-1590165482129-1b8b27698780?q=80&w=2574&auto=format&fit=crop",
-  njangsa: "https://images.unsplash.com/photo-1599909366516-6c1d2b49bc21?q=80&w=2574&auto=format&fit=crop",
-  mbongoTchobi: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?q=80&w=2574&auto=format&fit=crop",
-  achuSpices: "https://images.unsplash.com/photo-1532336414038-cf19250c5757?q=80&w=2574&auto=format&fit=crop",
-  kokiBeans: "https://images.unsplash.com/photo-1590769620285-6926a3e0d33e?q=80&w=2574&auto=format&fit=crop",
-  fufuCorn: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=2574&auto=format&fit=crop",
-  garri: "https://images.unsplash.com/photo-1604329756574-bda1f2cada6f?q=80&w=2574&auto=format&fit=crop",
-  njamaNjama: "https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?q=80&w=2574&auto=format&fit=crop",
-  okra: "https://images.unsplash.com/photo-1425543103986-22abb7d7e8d2?q=80&w=2574&auto=format&fit=crop",
-  ginger: "https://images.unsplash.com/photo-1603431777007-61db4494a034?q=80&w=2574&auto=format&fit=crop",
-  pepper: "https://images.unsplash.com/photo-1588252303782-cb80119abd6d?q=80&w=2574&auto=format&fit=crop",
-  groundnutOil: "https://images.unsplash.com/photo-1474979087999-7c800e70d5a5?q=80&w=2574&auto=format&fit=crop",
-  coconut:"/images/products/coconut.jpg",
-  sweetPotatoes: "https://images.unsplash.com/photo-1596097635121-14b38c5d7a55?q=80&w=2574&auto=format&fit=crop",
-  tomatoes: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?q=80&w=2574&auto=format&fit=crop",
-  onions: "https://images.unsplash.com/photo-1580201092675-a0a6a6cafbb1?q=80&w=2574&auto=format&fit=crop",
-  driedFish: "https://images.unsplash.com/photo-1574653853027-5382a3d23a7d?q=80&w=2574&auto=format&fit=crop",
-  smokedFish: "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?q=80&w=2574&auto=format&fit=crop",
-  beef: "https://images.unsplash.com/photo-1551028150-64b9f398f678?q=80&w=2574&auto=format&fit=crop",
-  chicken: "https://images.unsplash.com/photo-1587593810167-a84920ea0781?q=80&w=2574&auto=format&fit=crop",
-  goatMeat: "https://images.unsplash.com/photo-1594221708779-94832f4320d1?q=80&w=2574&auto=format&fit=crop",
-  // Add fallback images for any missing products
-  default: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=2670&auto=format&fit=crop",
+  plantains: "/images/products/plantains.jpg",
+  cassava: "/images/products/cassava.jpg",
+  redBeans: "/images/products/redbeans.jpg",
+  egusi: "/images/products/egusi.jpg",
+  palmOil: "/images/products/palmoil.jpg",
+  yams: "/images/products/yams.jpg",
+  peanuts: "/images/products/peanuts.jpg",
+  bitterLeaf: "/images/products/bitterleaf.jpg",
+  palmWine: "/images/products/palmwine.jpg",
+  cocoyams: "/images/products/cocoyams.jpg",
+  njangsa: "/images/products/njansa.jpg",
+  mbongoTchobi: "/images/products/mbongotchobi.jpg",
+  achuSpices: "/images/products/achuSpices.jpg",
+  kokiBeans: "/images/products/kokibeans.jpg",
+  fufuCorn: "/images/products/fufucorn.jpg",
+  garri: "/images/products/garri.jpg",
+  njamaNjama: "/images/products/njamanjama.jpg",
+  okra: "/images/products/okra.jpg",
+  ginger: "/images/products/ginger.jpg",
+  pepper: "/images/products/pepper.jpg",
+  groundnutOil: "/images/products/goil.jpg",
+  coconut: "/images/products/coconut.jpg",
+  sweetPotatoes: "/images/products/sweetpotatoes.jpg",
+  tomatoes: "/images/products/tomatoes.jpg",
+  onions: "/images/products/onions.jpg",
+  driedFish: "/images/products/dryfish.jpg",
+  smokedFish: "/images/products/dryfish.jpg",
+  beef: "/images/products/beef.jpg",
+  chicken: "/images/products/chicken.jpg",
+  goatMeat: "/images/products/goatmeat.jpeg",
+  // Fallback to placeholder images
+  default: "/images/placeholder-product.jpg"
 }
 
 // Cameroonian market store images
@@ -107,17 +107,25 @@ export const categoryImages = {
   fruits: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?q=80&w=2574&auto=format&fit=crop",
   vegetables: "https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?q=80&w=2574&auto=format&fit=crop",
   spices: "https://images.unsplash.com/photo-1532336414038-cf19250c5757?q=80&w=2574&auto=format&fit=crop",
-  oils: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=2574&auto=format&fit=crop",
+  oils: "/images/products/oil.jpg",
   tubers: "https://images.unsplash.com/photo-1598515214146-dab39da1243d?q=80&w=2574&auto=format&fit=crop",
   nuts: "https://images.unsplash.com/photo-1567892737950-30c4db37cd89?q=80&w=2574&auto=format&fit=crop",
   grains: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=2574&auto=format&fit=crop",
   beverages: "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=2574&auto=format&fit=crop",
-  "meat & fish": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?q=80&w=2574&auto=format&fit=crop",
+  "meat & fish": "/images/products/meat.jpg",
+  suckers: "https://images.unsplash.com/photo-1541658017279-68dfb5f9b5e6?q=80&w=2670&auto=format&fit=crop",
   default: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=2670&auto=format&fit=crop",
 }
 
 // Define units and quantity descriptions for different product types with realistic quantities
 export const productUnits: Record<string, { unit: string; quantityDescription: string; singlePrice: number }> = {
+  // Suckers (plantains, etc.)
+  suckers: {
+    unit: 'bunch',
+    quantityDescription: 'per bunch (5-8 fingers)',
+    singlePrice: 1000, // Average price per bunch
+  },
+  // Existing categories...
   plantains: { unit: "bunch", quantityDescription: "1 bunch (approximately 5-7 plantains)", singlePrice: 100 },
   cassava: { unit: "kg", quantityDescription: "1 kg (approximately 2-3 roots)", singlePrice: 200 },
   redBeans: { unit: "cup", quantityDescription: "1 cup (approximately 250g)", singlePrice: 100 },
@@ -223,6 +231,7 @@ export const categories = [
   "Oils",
   "Tubers",
   "Nuts",
+  "Suckers",
   "Meat & Fish",
   "Beverages",
   "Soups",
@@ -293,36 +302,96 @@ export const productNameToImage: Record<string, string> = {
 
 // Add a fallback function to ensure we always have an image
 export function getProductImage(productId: number, productName?: string): string {
-  const product = getProductById(productId)
-
-  if (product && product.image) {
-    return product.image
+  try {
+    // First try to get the full product by ID
+    const product = getProductById(productId);
+    
+    // If we have a valid product, ensure it has a proper image
+    if (product) {
+      // Create a partial product with the available data
+      const partialProduct: Partial<Product> = {
+        id: product.id,
+        name: product.name || productName,
+        category: product.category,
+        image: product.image
+      };
+      
+      // Use our enhanced ensureProductImage function
+      return ensureProductImage(partialProduct);
+    }
+  } catch (error) {
+    console.warn(`Product with ID ${productId} not found:`, error);
   }
 
-  // Try to find by name if provided
+  // If we have a product name but no product by ID, try to match by name
   if (productName) {
-    const nameKey = productName.toLowerCase().replace(/\s+/g, "")
-    for (const [key, url] of Object.entries(productImages)) {
-      if (key.toLowerCase().includes(nameKey) || nameKey.includes(key.toLowerCase())) {
-        return url
-      }
+    return ensureProductImage({ name: productName });
+  }
+
+  // Fallback to default product image
+  console.warn(`Using default image for product ID ${productId}`);
+  return productImages.default;
+}
+
+/**
+ * Get a store image by store ID
+ * @param storeId - The ID of the store
+ * @returns A valid image URL for the store
+ */
+export function getStoreImage(storeId: number): string {
+  if (!storeId || isNaN(storeId) || storeId < 1) {
+    console.warn(`Invalid store ID: ${storeId}`);
+    return storeImages.default;
+  }
+  
+  // Ensure storeId is within valid range (1-8)
+  const storeKey = `store${((storeId - 1) % 8) + 1}` as keyof typeof storeImages;
+  const imageUrl = storeImages[storeKey] || storeImages.default;
+  
+  // Ensure the URL is valid
+  if (!imageUrl || imageUrl.includes('undefined')) {
+    console.warn(`Invalid image URL for store ${storeId}`);
+    return storeImages.default;
+  }
+  
+  return imageUrl;
+}
+
+/**
+ * Get a category image by category name
+ * @param category - The name of the category
+ * @returns A valid image URL for the category
+ */
+export function getCategoryImage(category: string): string {
+  if (!category) return categoryImages.default;
+  
+  const categoryKey = category.toLowerCase().trim().replace(/[^a-z0-9]+/g, '');
+  
+  // Special case for meat & fish
+  if (categoryKey.includes('meat') || categoryKey.includes('fish')) {
+    return categoryImages['meat & fish'];
+  }
+  
+  // Special case for suckers (plantains, etc.)
+  if (categoryKey === 'suckers') {
+    return categoryImages.suckers;
+  }
+  
+  // Try direct match first
+  if (categoryKey in categoryImages) {
+    return categoryImages[categoryKey as keyof typeof categoryImages];
+  }
+  
+  // Try partial match
+  for (const [key, value] of Object.entries(categoryImages)) {
+    if (categoryKey.includes(key) || key.includes(categoryKey)) {
+      return value;
     }
   }
-
-  // Return default image if nothing else works
-  return productImages.default
-}
-
-// Improve the getStoreImage function to handle any missing images
-export function getStoreImage(storeId: number): string {
-  const storeKey = `store${(storeId % 8) + 1}` as keyof typeof storeImages
-  return storeImages[storeKey] || storeImages.default
-}
-
-// Improve the getCategoryImage function to handle any missing images
-export function getCategoryImage(category: string): string {
-  const categoryKey = category.toLowerCase() as keyof typeof categoryImages
-  return categoryImages[categoryKey] || categoryImages.default
+  
+  // Default fallback
+  console.warn(`No matching image found for category: ${category}`);
+  return categoryImages.default;
 }
 
 // Helper function to get unit information for a product
@@ -347,7 +416,7 @@ export const fixedProducts: Product[] = [
   {
     id: 1,
     name: "Fresh Plantains",
-    category: "Fruits",
+    category: "Suckers",
     price: 500,
     description: "Fresh plantains from local farms",
     storeId: 1,
@@ -375,7 +444,7 @@ export const fixedProducts: Product[] = [
   {
     id: 3,
     name: "Cassava",
-    category: "Vegetables",
+    category: "Tubers",
     price: 200,
     description: "Fresh cassava roots from local farms",
     storeId: 1,
@@ -473,7 +542,7 @@ export const fixedProducts: Product[] = [
   {
     id: 10,
     name: "Cocoyams",
-    category: "Vegetables",
+    category: "Tubers",
     price: 300,
     description: "Fresh cocoyams from local farms",
     storeId: 1,
@@ -500,86 +569,103 @@ export const fixedProducts: Product[] = [
   },
 ]
 
-// Updated to generate products for specific cities
+/**
+ * Generate products for a specific store, ensuring all have proper image paths
+ * @param storeId - The ID of the store
+ * @param count - Number of products to generate
+ * @param startId - Starting ID for generated products
+ * @param cityId - Optional city ID to filter products by city
+ * @returns Array of Product objects with proper image paths
+ */
 export function generateProductsFromStore(storeId: number, count: number, startId: number, cityId?: number): Product[] {
-  // Use fixed products first, then generate dynamic ones if needed
-  const result: Product[] = []
+  const result: Product[] = [];
+  
+  // Helper function to ensure product has proper image and other required fields
+  const processProduct = (product: Product): Product => {
+    // Ensure the product has a valid image
+    const image = ensureProductImage(product);
+    
+    // Get unit information if not already set
+    const unitInfo = getProductUnitInfo(product.name);
+    
+    return {
+      ...product,
+      image,
+      unit: product.unit || unitInfo.unit,
+      quantityDescription: product.quantityDescription || unitInfo.quantityDescription,
+      // Ensure price is a number and has a reasonable minimum value
+      price: Math.max(100, typeof product.price === 'number' ? product.price : 1000),
+      // Ensure category is set
+      category: product.category || 'Groceries',
+      // Ensure store ID is set
+      storeId: product.storeId || storeId,
+      // Ensure inStock is set
+      inStock: product.inStock !== false,
+    };
+  };
 
   // If cityId is provided, filter fixed products by cityId
   if (cityId) {
-    // Add products from the fixed list that belong to this store and city
-    for (let i = 0; i < fixedProducts.length; i++) {
-      if (fixedProducts[i].storeId === storeId && fixedProducts[i].cityId === cityId && result.length < count) {
-        result.push({
-          ...fixedProducts[i],
-        })
+    for (const product of fixedProducts) {
+      if (product.storeId === storeId && product.cityId === cityId && result.length < count) {
+        result.push(processProduct({ ...product }));
       }
     }
   } else {
     // Add products from the fixed list that belong to this store
-    for (let i = 0; i < fixedProducts.length; i++) {
-      if (fixedProducts[i].storeId === storeId && result.length < count) {
-        result.push({
-          ...fixedProducts[i],
-        })
+    for (const product of fixedProducts) {
+      if (product.storeId === storeId && result.length < count) {
+        result.push(processProduct({ ...product }));
       }
     }
   }
 
   // If we still need more products, generate dynamic ones
-  const remainingCount = count - result.length
+  const remainingCount = count - result.length;
   if (remainingCount > 0) {
     // Use provided cityId or generate a random one
-    const productCityId = cityId || Math.floor(Math.random() * 10) * 100 + Math.floor(Math.random() * 3) + 1
-    const city = getCityById(productCityId)
-    const regionId = Math.floor(productCityId / 100)
+    const productCityId = cityId || Math.floor(Math.random() * 10) * 100 + Math.floor(Math.random() * 3) + 1;
+    const city = getCityById(productCityId);
 
     for (let i = 0; i < remainingCount; i++) {
-      const id = 12 + startId + i // Start dynamic IDs after the fixed ones
-      const nameIndex = (id - 12) % productNames.length
-      const productName = productNames[nameIndex]
+      const id = 12 + startId + i; // Start dynamic IDs after the fixed ones
+      const nameIndex = (id - 12) % productNames.length;
+      const productName = productNames[nameIndex];
 
       // Get city-specific store name and location
-      const neighborhood = city ? getRandomNeighborhood(productCityId) : "Central"
-      const storeName = `${neighborhood} Market Store ${storeId}`
-      const location = city ? `${neighborhood}, ${city.name}` : "Unknown Location"
+      const neighborhood = city ? getRandomNeighborhood(productCityId) : "Central";
+      const storeName = `${neighborhood} Market Store ${storeId}`;
+      const location = city ? `${neighborhood}, ${city.name}` : "Unknown Location";
 
-      const category = categories[id % categories.length]
-
-      // Add some region-specific products
-      let image = productNameToImage[productName] || getCategoryImage(category) || productImages.default
-      let regionSpecific = false
-
-      // 30% chance of being a regional specialty
-      if (Math.random() < 0.3 && regionalProducts[regionId]) {
-        const regionalProduct =
-          regionalProducts[regionId][Math.floor(Math.random() * regionalProducts[regionId].length)]
-        image = regionalProduct.image
-        regionSpecific = true
-      }
-
+      const category = categories[id % categories.length];
+      
       // Get unit information for this product
-      const unitInfo = getProductUnitInfo(productName)
-
-      result.push({
+      const unitInfo = getProductUnitInfo(productName);
+      
+      // Create a partial product
+      const partialProduct: Partial<Product> = {
         id,
         name: productName,
         category,
-        price: unitInfo.singlePrice * (1 + Math.floor(Math.random() * 4)), // Realistic price based on single price
+        price: Math.floor(Math.random() * 5000) + 500, // Random price between 500 and 5500
+        description: `Fresh ${productName.toLowerCase()} from local farms`,
         storeId,
         store: storeName,
-        location,
         cityId: productCityId,
-        image,
-        description: descriptions[id % descriptions.length],
-        regionSpecific,
-        unit: unitInfo.unit,
-        quantityDescription: unitInfo.quantityDescription,
-      })
+        location,
+        inStock: true,
+        rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
+        reviews: Math.floor(Math.random() * 100),
+        ...unitInfo
+      };
+      
+      // Ensure the product has a proper image
+      const product = processProduct(partialProduct as Product);
+      result.push(product);
     }
   }
 
-  return result
+  return result;
 }
 
 // Improve the getProductById function to ensure all products have images and locations
@@ -671,29 +757,62 @@ export function getProductById(id: number): Product {
   }
 }
 
-// Add a helper function to ensure all products have proper images
+// Helper function to ensure all products have proper images
 export function ensureProductImage(product: Partial<Product>): string {
-  if (product.image && !product.image.includes("placeholder.svg")) {
-    return product.image
+  // If product already has a valid image, return it
+  if (product.image && !product.image.includes("placeholder") && !product.image.startsWith('http')) {
+    // Ensure the image path is valid
+    if (product.image.startsWith('/images/')) {
+      return product.image;
+    }
+    return `/images/products/${product.image}`;
   }
 
+  // Try to find a matching image by product ID
   if (product.id) {
-    const fullProduct = getProductById(product.id)
-    if (fullProduct.image) {
-      return fullProduct.image
+    try {
+      const fullProduct = getProductById(product.id);
+      if (fullProduct?.image) {
+        return fullProduct.image.startsWith('/images/') 
+          ? fullProduct.image 
+          : `/images/products/${fullProduct.image}`;
+      }
+    } catch (error) {
+      console.warn(`Error getting product by ID ${product.id}:`, error);
     }
   }
 
+  // Try to find a matching image by product name
   if (product.name) {
-    const nameKey = product.name.toLowerCase().replace(/\s+/g, "")
+    const nameKey = product.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // First try exact matches
     for (const [key, url] of Object.entries(productImages)) {
-      if (key.toLowerCase().includes(nameKey) || nameKey.includes(key.toLowerCase())) {
-        return url
+      if (key.toLowerCase() === nameKey) {
+        return url;
+      }
+    }
+    
+    // Then try partial matches
+    for (const [key, url] of Object.entries(productImages)) {
+      if (nameKey.includes(key.toLowerCase()) || key.toLowerCase().includes(nameKey)) {
+        return url;
       }
     }
   }
 
-  return productImages.default
+  // Try to find by category
+  if (product.category) {
+    const categoryKey = product.category.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const categoryImage = getCategoryImage(categoryKey);
+    if (categoryImage && !categoryImage.includes('placeholder')) {
+      return categoryImage;
+    }
+  }
+
+  // Fallback to default product image
+  console.warn(`Using default image for product: ${product.name || 'Unknown'}`);
+  return productImages.default;
 }
 
 export const getStoreLocation = (storeId: number): string => {

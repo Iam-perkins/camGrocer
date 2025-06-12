@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Order from "@/models/Order";
+import Order, { IOrder, IOrderItem } from "@/models/Order";
+import Store from "@/models/store";
+import { sendOrderConfirmationEmail } from "@/lib/email";
+
+// Re-export the OrderItem type for use in this file
+type OrderItem = IOrderItem;
 
 // Type definitions for order items
-interface OrderItem {
+export interface OrderItem {
   productId: string;
   name: string;
   price: number;
@@ -108,6 +113,42 @@ export async function POST(request: Request) {
     });
 
     await order.save();
+
+    // Get store owner emails
+    const storeOwners = await Store.find({
+      _id: { $in: storeIds }
+    }).select('owner.email');
+    
+    const storeOwnerEmails = storeOwners
+      .map((store: any) => store.owner?.email)
+      .filter((email: string | undefined): email is string => Boolean(email));
+
+    // Prepare order details for email
+    const orderDetails = {
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      items: order.items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        storeName: item.storeName
+      } as const)),
+      subtotal: order.subtotal,
+      shippingFee: order.shippingFee,
+      total: order.total,
+      shippingAddress: order.shippingAddress,
+      paymentMethod: order.paymentMethod,
+      orderDate: order.createdAt.toISOString()
+    };
+
+    // Send confirmation emails (don't await to avoid blocking the response)
+    sendOrderConfirmationEmail(
+      orderDetails,
+      order.customerEmail,
+      storeOwnerEmails
+    ).catch(error => {
+      console.error('Error sending order confirmation emails:', error);
+    });
 
     return NextResponse.json({ 
       message: 'Order created successfully',
